@@ -214,3 +214,78 @@ ${exam.focus}
     };
   }
 }
+
+/**
+ * 伴写续写：根据用户已写的中文内容生成续写建议
+ */
+export async function cowriteContinue(
+  existingText: string,
+  style: WritingStyle = "daily"
+): Promise<{ suggestions: string[] }> {
+  const styleName = styleMap[style];
+
+  const systemPrompt = `你是一位专业的中文写作助手，擅长${styleName}写作。用户正在写一段中文，请你根据已有内容，生成自然的下一句话。
+
+## 任务
+1. 仔细分析用户已写文字的主题、语气、句式风格和逻辑走向
+2. 生成 2 个不同的续写方向，每个 1-2 句话
+3. 续写需要与上文保持逻辑连贯、风格一致、自然流畅
+
+## 续写方向建议（2 个方向各选不同角度）：
+- **方向A**：顺承递进 — 沿着上文的思路继续深入或展开
+- **方向B**：补充拓展 — 从另一个角度补充论证，或举例说明
+
+## 风格约束
+当前写作风格为「${styleName}」，请确保续写符合该风格：
+- 日常英语风格对应中文"日常口语化表达，自然亲切"
+- 学术英语风格对应中文"严谨规范的论述，用词正式"
+- 商务英语风格对应中文"简洁专业的表达，逻辑清晰"
+
+## 输出格式
+严格返回以下 JSON（不要 markdown 代码块）:
+{
+  "suggestions": ["续写方向A的内容", "续写方向B的内容"]
+}
+
+## 重要原则
+- 续写句子自然流畅，不像是 AI 生成的
+- 长度与用户上文的句子长度相匹配
+- 不要重复用户已有的内容
+- 不要添加总结性或结束性语句（如"总而言之"）
+- 只返回 JSON，不要其他文字`;
+
+  const response = await client.chat.completions.create({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `请根据以下内容生成续写：\n\n${existingText}` },
+    ],
+    temperature: 1.0,
+    max_tokens: 1024,
+  });
+
+  const content = response.choices[0]?.message?.content || "";
+
+  let jsonStr = content.trim();
+  if (jsonStr.startsWith("```")) {
+    jsonStr = jsonStr
+      .replace(/```json?\s*\n?/g, "")
+      .replace(/```\s*\n?/g, "");
+  }
+
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return {
+      suggestions: Array.isArray(parsed.suggestions)
+        ? parsed.suggestions.slice(0, 2)
+        : [],
+    };
+  } catch {
+    // 解析失败时，尝试按行分割作为 fallback
+    const lines = content
+      .split(/\n/)
+      .map((l: string) => l.replace(/^\d+[\.\、\s]+/, "").trim())
+      .filter((l: string) => l.length > 10);
+    return { suggestions: lines.slice(0, 2) };
+  }
+}

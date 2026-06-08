@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { EssayCorrector } from "@/components/EssayCorrector";
@@ -15,6 +15,13 @@ export default function CorrectPage() {
   const [result, setResult] = useState<
     (CorrectionResultType & { remaining: number }) | null
   >(null);
+
+  // 未登录时跳转（必须在 useEffect 中，不能在 render 时调用 router.push）
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
 
   const handleResult = useCallback(
     (data: CorrectionResultType & { remaining: number }) => {
@@ -36,9 +43,13 @@ export default function CorrectPage() {
     );
   }
 
+  // 未登录时显示加载状态（等待 useEffect 跳转）
   if (status === "unauthenticated") {
-    router.push("/login");
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (

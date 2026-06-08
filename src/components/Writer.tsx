@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -11,8 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, GraduationCap, PenLine } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Loader2, Send, GraduationCap, PenLine, Sparkles, X, Wand2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { GrammarNote, VocabNote, ExamType, WritingStyle } from "@/types";
 
 interface WriterProps {
@@ -40,7 +42,26 @@ export function Writer({ onResult, onError }: WriterProps) {
   const [style, setStyle] = useState<string>("daily");
   const [examType, setExamType] = useState<string>("general");
   const [loading, setLoading] = useState(false);
+
+  // 伴写状态
+  const [cowriteLoading, setCowriteLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const router = useRouter();
+  const cowriteRef = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭弹出
+  useEffect(() => {
+    if (!showSuggestions) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cowriteRef.current && !cowriteRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showSuggestions]);
 
   const handleSubmit = async () => {
     if (!text.trim() || loading) return;
@@ -74,6 +95,52 @@ export function Writer({ onResult, onError }: WriterProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 续写请求
+  const handleCowrite = async () => {
+    if (!text.trim() || cowriteLoading) return;
+
+    setCowriteLoading(true);
+    setShowSuggestions(false);
+    try {
+      const res = await fetch("/api/cowrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text.trim(), style }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          router.push("/login");
+          return;
+        }
+        const err = await res.json();
+        toast.error(err.error || "续写失败");
+        return;
+      }
+
+      const data = await res.json();
+      if (data.suggestions && data.suggestions.length > 0) {
+        setSuggestions(data.suggestions);
+        setShowSuggestions(true);
+      } else {
+        toast.error("未能生成续写建议，请调整上文内容后重试");
+      }
+    } catch {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setCowriteLoading(false);
+    }
+  };
+
+  // 选择续写建议
+  const handlePickSuggestion = (suggestion: string) => {
+    const needsPeriod =
+      text.trim() && !text.trim().endsWith("。") && !text.trim().endsWith("！") && !text.trim().endsWith("？");
+    setText((prev) => prev + (needsPeriod ? "。" : "") + suggestion);
+    setShowSuggestions(false);
+    toast.success("已追加续写");
   };
 
   return (
@@ -115,15 +182,74 @@ export function Writer({ onResult, onError }: WriterProps) {
         <Badge variant="outline" className="text-xs h-8">
           {text.length}/2000 字
         </Badge>
+
+        {/* 续写按钮 */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCowrite}
+          disabled={!text.trim() || cowriteLoading}
+          className="h-8 text-xs gap-1.5 ml-auto"
+        >
+          {cowriteLoading ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              续写中
+            </>
+          ) : (
+            <>
+              <Wand2 className="h-3.5 w-3.5" />
+              AI 续写
+            </>
+          )}
+        </Button>
       </div>
 
-      <Textarea
-        placeholder="在这里输入你想翻译的中文内容...&#10;比如：随着互联网的普及，越来越多的人开始关注网络安全问题。"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="min-h-[180px] sm:min-h-[200px] text-base resize-y"
-        maxLength={2000}
-      />
+      {/* 输入区域 + 续写弹出 */}
+      <div className="relative" ref={cowriteRef}>
+        <Textarea
+          placeholder="在这里输入你想翻译的中文内容...&#10;比如：随着互联网的普及，越来越多的人开始关注网络安全问题。"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="min-h-[180px] sm:min-h-[200px] text-base resize-y"
+          maxLength={2000}
+        />
+
+        {/* 续写建议弹出卡片 */}
+        {showSuggestions && suggestions.length > 0 && (
+          <Card className="absolute right-0 top-0 sm:left-full sm:top-0 sm:ml-3 w-full sm:w-72 z-20 shadow-lg border-primary/20">
+            <div className="flex items-center justify-between p-3 pb-2">
+              <span className="text-xs font-medium flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                AI 续写建议
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setShowSuggestions(false)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <div className="px-3 pb-3 space-y-2">
+              {suggestions.map((suggestion, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handlePickSuggestion(suggestion)}
+                  className="w-full text-left p-2.5 rounded-md border bg-muted/20 hover:bg-primary/5 hover:border-primary/30 transition-colors text-sm leading-relaxed"
+                >
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-bold mr-2 shrink-0 align-top mt-0.5">
+                    {i + 1}
+                  </span>
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </Card>
+        )}
+      </div>
 
       <Button
         onClick={handleSubmit}
