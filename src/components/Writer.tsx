@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { LoadingProgress } from "@/components/LoadingProgress";
 import { Loader2, Send, GraduationCap, PenLine, Sparkles, X, Wand2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -251,24 +252,19 @@ export function Writer({ onResult, onError }: WriterProps) {
         )}
       </div>
 
-      <Button
-        onClick={handleSubmit}
-        disabled={!text.trim() || loading}
-        className="w-full"
-        size="lg"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            正在深度分析...
-          </>
-        ) : (
-          <>
-            <Send className="mr-2 h-4 w-4" />
-            开始翻译与分析
-          </>
-        )}
-      </Button>
+      {loading ? (
+        <LoadingProgress loading={loading} label="正在深度分析..." />
+      ) : (
+        <Button
+          onClick={handleSubmit}
+          disabled={!text.trim()}
+          className="w-full"
+          size="lg"
+        >
+          <Send className="mr-2 h-4 w-4" />
+          开始翻译与分析
+        </Button>
+      )}
     </div>
   );
 }

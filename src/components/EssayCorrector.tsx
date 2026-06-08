@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, GraduationCap } from "lucide-react";
+import { LoadingProgress } from "@/components/LoadingProgress";
+import { Send, GraduationCap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { CorrectionResult, ExamType } from "@/types";
 
@@ -97,24 +98,19 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
         maxLength={5000}
       />
 
-      <Button
-        onClick={handleSubmit}
-        disabled={!essay.trim() || loading}
-        className="w-full"
-        size="lg"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            正在批改...
-          </>
-        ) : (
-          <>
-            <Send className="mr-2 h-4 w-4" />
-            提交批改
-          </>
-        )}
-      </Button>
+      {loading ? (
+        <LoadingProgress loading={loading} label="正在批改..." />
+      ) : (
+        <Button
+          onClick={handleSubmit}
+          disabled={!essay.trim()}
+          className="w-full"
+          size="lg"
+        >
+          <Send className="mr-2 h-4 w-4" />
+          提交批改
+        </Button>
+      )}
     </div>
   );
 }

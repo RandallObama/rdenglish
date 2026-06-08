@@ -6,7 +6,7 @@ import { StatsCards } from "@/components/StatsCards";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { PenLine, ArrowRight, Crown } from "lucide-react";
+import { PenLine, GraduationCap, ArrowRight, Crown } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -30,10 +30,16 @@ export default async function DashboardPage() {
             这里是你的学习概览
           </p>
         </div>
-        <Link href="/write" className={buttonVariants({ size: "sm" })}>
-          <PenLine className="mr-2 h-4 w-4" />
-          开始写作
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/write" className={buttonVariants({ size: "sm" })}>
+            <PenLine className="mr-2 h-4 w-4" />
+            中文写作翻译
+          </Link>
+          <Link href="/correct" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <GraduationCap className="mr-2 h-4 w-4" />
+            英文写作批改
+          </Link>
+        </div>
       </div>
 
       <StatsCards
