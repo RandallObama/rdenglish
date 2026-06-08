@@ -1,0 +1,449 @@
+"use client";
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { SaveButton } from "@/components/SaveButton";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
+import {
+  Copy,
+  Check,
+  Lightbulb,
+  BookOpen,
+  AlertTriangle,
+  Target,
+  ListChecks,
+  Link2,
+  ArrowLeftRight,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import type { GrammarNote, VocabNote } from "@/types";
+
+interface ResultCardProps {
+  english: string;
+  grammarNotes: GrammarNote[];
+  vocabNotes: VocabNote[];
+  remaining: number;
+}
+
+const levelVariant = {
+  "基础": "secondary" as const,
+  "进阶": "default" as const,
+  "高级": "destructive" as const,
+} as Record<string, "secondary" | "default" | "destructive">;
+
+export function ResultCard({
+  english,
+  grammarNotes,
+  vocabNotes,
+  remaining,
+}: ResultCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(english);
+    setCopied(true);
+    toast.success("已复制到剪贴板");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Card className="mt-6">
+      <CardContent className="p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg">翻译结果</h3>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              今日剩余 {remaining} 次
+            </Badge>
+            <Button variant="ghost" size="sm" onClick={handleCopy}>
+              {copied ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* 翻译文本 */}
+        <div className="bg-muted/50 rounded-lg p-4 mb-6">
+          <p className="text-base leading-relaxed whitespace-pre-wrap">
+            {english}
+          </p>
+        </div>
+
+        {/* 语法 & 词汇 */}
+        <Tabs defaultValue="grammar">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="grammar" className="gap-1">
+              <Lightbulb className="h-4 w-4" />
+              语法要点 ({grammarNotes.length})
+            </TabsTrigger>
+            <TabsTrigger value="vocab" className="gap-1">
+              <BookOpen className="h-4 w-4" />
+              词汇笔记 ({vocabNotes.length})
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ========= 语法标签页 ========= */}
+          <TabsContent value="grammar" className="mt-4 space-y-3">
+            {grammarNotes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                暂无语法要点
+              </p>
+            ) : (
+              grammarNotes.map((note, i) => (
+                <CollapsibleSection
+                  key={i}
+                  summary={
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-base">{note.point}</span>
+                      <Badge
+                        variant={levelVariant[note.level] || "secondary"}
+                        className="text-xs"
+                      >
+                        {note.level}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground line-clamp-1">
+                        {note.function}
+                      </span>
+                    </div>
+                  }
+                  action={
+                    <SaveButton
+                      type="grammar"
+                      data={{
+                        point: note.point,
+                        level: note.level,
+                        function: note.function,
+                        structure: note.structure,
+                        explanation: note.explanation,
+                        examples: note.examples,
+                        commonMistakes: note.commonMistakes,
+                        examTip: note.examTip || "",
+                      }}
+                      source="translate"
+                    />
+                  }
+                >
+                  <div className="space-y-4">
+                    {/* 结构公式 */}
+                    <div className="flex gap-2">
+                      <Link2 className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-xs font-medium text-muted-foreground">
+                          结构公式
+                        </span>
+                        <p className="text-sm font-mono bg-muted/50 rounded px-2 py-1 mt-0.5">
+                          {note.structure}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* 详细讲解 */}
+                    <div className="flex gap-2">
+                      <BookOpen className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-xs font-medium text-muted-foreground">
+                          详细讲解
+                        </span>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {note.explanation}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 例句 */}
+                    {note.examples && note.examples.length > 0 && (
+                      <div className="flex gap-2">
+                        <ListChecks className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            例句
+                          </span>
+                          <ul className="mt-1 space-y-1">
+                            {note.examples.map((ex, j) => (
+                              <li
+                                key={j}
+                                className="text-sm italic border-l-2 border-primary/20 pl-3 text-muted-foreground"
+                              >
+                                {ex}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 常见错误 */}
+                    {note.commonMistakes &&
+                      Array.isArray(note.commonMistakes) &&
+                      note.commonMistakes.length > 0 && (
+                        <div className="flex gap-2">
+                          <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                          <div className="flex-1 space-y-2">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              常见错误
+                            </span>
+                            {note.commonMistakes.map((mistake, j) => {
+                              const isObject = typeof mistake === "object" && mistake !== null;
+                              return (
+                                <div
+                                  key={j}
+                                  className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-3 space-y-1.5"
+                                >
+                                  {isObject ? (
+                                    <>
+                                      <div className="space-y-0.5">
+                                        <p className="text-xs text-red-600 dark:text-red-400">
+                                          ❌ 错误：{mistake.error}
+                                        </p>
+                                        <p className="text-xs text-green-600 dark:text-green-400">
+                                          ✅ 正确：{mistake.correction}
+                                        </p>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground border-t border-orange-200 dark:border-orange-800 pt-1.5">
+                                        💡 {mistake.explanation}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                      ❌ {String(mistake)}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                    {/* 考试提示 */}
+                    {note.examTip && (
+                      <div className="flex gap-2">
+                        <Target className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            考试提示
+                          </span>
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            {note.examTip}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
+              ))
+            )}
+          </TabsContent>
+
+          {/* ========= 词汇标签页 ========= */}
+          <TabsContent value="vocab" className="mt-4 space-y-3">
+            {vocabNotes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                暂无词汇笔记
+              </p>
+            ) : (
+              vocabNotes.map((note, i) => (
+                <CollapsibleSection
+                  key={i}
+                  summary={
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-lg text-primary">
+                        {note.word}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {note.chinese}
+                      </Badge>
+                      <Badge
+                        variant={levelVariant[note.level] || "secondary"}
+                        className="text-xs"
+                      >
+                        {note.level}
+                      </Badge>
+                      {note.usage && (
+                        <span className="text-sm text-muted-foreground line-clamp-1 hidden sm:inline">
+                          {note.usage.length > 40
+                            ? note.usage.slice(0, 40) + "…"
+                            : note.usage}
+                        </span>
+                      )}
+                    </div>
+                  }
+                  action={
+                    <SaveButton
+                      type="word"
+                      data={{
+                        word: note.word,
+                        chinese: note.chinese,
+                        collocations: note.collocations || [],
+                        synonyms: note.synonyms || [],
+                        level: note.level,
+                        usage: note.usage,
+                        examples: note.examples || [],
+                        commonErrors: note.commonErrors || [],
+                        examFocus: note.examFocus || "",
+                      }}
+                      source="translate"
+                    />
+                  }
+                >
+                  <div className="space-y-4">
+                    {/* 搭配 */}
+                    {note.collocations && note.collocations.length > 0 && (
+                      <div className="flex gap-2">
+                        <Link2 className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            常用搭配
+                          </span>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {note.collocations.map((col, j) => (
+                              <Badge
+                                key={j}
+                                variant="secondary"
+                                className="text-xs font-mono"
+                              >
+                                {col}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 近义词 */}
+                    {note.synonyms && note.synonyms.length > 0 && (
+                      <div className="flex gap-2">
+                        <ArrowLeftRight className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            近义词辨析
+                          </span>
+                          <ul className="mt-1 space-y-0.5">
+                            {note.synonyms.map((syn, j) => (
+                              <li
+                                key={j}
+                                className="text-sm text-muted-foreground"
+                              >
+                                • {syn}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    <Separator />
+
+                    {/* 用法说明 */}
+                    <div className="flex gap-2">
+                      <BookOpen className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-xs font-medium text-muted-foreground">
+                          用法说明
+                        </span>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {note.usage}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 例句 */}
+                    {note.examples && note.examples.length > 0 && (
+                      <div className="flex gap-2">
+                        <ListChecks className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            例句
+                          </span>
+                          <ul className="mt-1 space-y-1">
+                            {note.examples.map((ex, j) => (
+                              <li
+                                key={j}
+                                className="text-sm italic border-l-2 border-primary/20 pl-3 text-muted-foreground"
+                              >
+                                {ex}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 常见误用 */}
+                    {note.commonErrors &&
+                      Array.isArray(note.commonErrors) &&
+                      note.commonErrors.length > 0 && (
+                        <div className="flex gap-2">
+                          <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                          <div className="flex-1 space-y-2">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              常见误用
+                            </span>
+                            {note.commonErrors.map((err, j) => {
+                              const isObject = typeof err === "object" && err !== null;
+                              return (
+                                <div
+                                  key={j}
+                                  className="bg-red-50 dark:bg-red-950/30 rounded-lg p-3 space-y-1.5"
+                                >
+                                  {isObject ? (
+                                    <>
+                                      <div className="space-y-0.5">
+                                        <p className="text-xs text-red-600 dark:text-red-400">
+                                          ❌ 误用：{err.error}
+                                        </p>
+                                        <p className="text-xs text-green-600 dark:text-green-400">
+                                          ✅ 正确：{err.correction}
+                                        </p>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground border-t border-red-200 dark:border-red-800 pt-1.5">
+                                        💡 {err.explanation}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                      ❌ {String(err)}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                    {/* 考试关注 */}
+                    {note.examFocus && (
+                      <div className="flex gap-2">
+                        <Target className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            考试关注
+                          </span>
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            {note.examFocus}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+}

@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  passwordHash  String
+  name          String?
+  plan          String          @default("free")
+  dailyUsage    Int             @default(0)
+  lastUsageDate String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  writings      Writing[]
+  corrections   Correction[]
+  savedWords    SavedWord[]
+  savedGrammars SavedGrammar[]
+}
+
+model Writing {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceText   String
+  resultText   String
+  style        String   @default("daily")
+  examType     String   @default("general")
+  grammarNotes String?
+  vocabNotes   String?
+  createdAt    DateTime @default(now())
+}
+
+model Correction {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  essayText        String
+  examType         String   @default("general")
+  totalScore       Float
+  maxScore         Float
+  scores           String   // JSON: ScoreBreakdown
+  sentenceCorrections String // JSON: SentenceCorrection[]
+  grammarIssues    String   // JSON: GrammarNote[]
+  vocabSuggestions String   // JSON: VocabNote[]
+  improvementSuggestions String? // JSON: ImprovementSuggestion[]
+  overallComment   String
+  createdAt        DateTime @default(now())
+}
+
+model SavedWord {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word         String
+  chinese      String
+  collocations String?  // JSON
+  synonyms     String?  // JSON
+  level        String?
+  usage        String?
+  examples     String?  // JSON
+  commonErrors String?  // JSON
+  examFocus    String?
+  source       String   @default("translate")
+  createdAt    DateTime @default(now())
+}
+
+model SavedGrammar {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  point          String
+  level          String?
+  function       String?
+  structure      String?
+  explanation    String?
+  examples       String?  // JSON
+  commonMistakes String?  // JSON
+  examTip        String?
+  source         String   @default("translate")
+  createdAt      DateTime @default(now())
+}
