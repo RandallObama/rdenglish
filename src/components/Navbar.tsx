@@ -120,7 +120,10 @@ export function Navbar() {
                   仪表盘
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/history")}>
-                  历史记录
+                  翻译记录
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/history/corrections")}>
+                  批改记录
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -174,6 +177,12 @@ export function Navbar() {
               </Link>
               <Link href="/dashboard" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 仪表盘
+              </Link>
+              <Link href="/history" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+                翻译记录
+              </Link>
+              <Link href="/history/corrections" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+                批改记录
               </Link>
               <button
                 className="block py-2.5 text-sm text-red-600 dark:text-red-400"

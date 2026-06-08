@@ -70,7 +70,7 @@ export default function HistoryPage() {
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <div className="flex items-start sm:items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold">历史记录</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">翻译记录</h1>
           <p className="text-muted-foreground text-sm mt-1">
             查看你之前的翻译记录
           </p>

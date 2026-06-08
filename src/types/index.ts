@@ -89,6 +89,7 @@ export interface CorrectionRecord {
   essayText: string;
   examType: string;
   totalScore: number;
+  maxScore: number;
   scores: ScoreBreakdown;
   sentenceCorrections: SentenceCorrection[];
   grammarIssues: GrammarNote[];
