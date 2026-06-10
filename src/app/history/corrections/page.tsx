@@ -7,7 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Trash2, GraduationCap, FileCheck, Lightbulb, BookOpen, Sparkles, MessageSquareText } from "lucide-react";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { SaveButton } from "@/components/SaveButton";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, Trash2, GraduationCap, FileCheck, Lightbulb, BookOpen, Sparkles, MessageSquareText, ChevronDown, ChevronUp, Link2, ArrowLeftRight, AlertTriangle, Target, ListChecks, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import type { CorrectionRecord, ExamType } from "@/types";
@@ -27,29 +30,43 @@ const levelVariant = {
   "高级": "destructive" as const,
 } as Record<string, "secondary" | "default" | "destructive">;
 
+const PAGE_SIZE = 10;
+
 export default function CorrectionHistoryPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [records, setRecords] = useState<CorrectionRecord[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (pageNum: number, append = false) => {
+    const setLoadingState = append ? setLoadingMore : setLoading;
+    setLoadingState(true);
     try {
-      const res = await fetch("/api/correct");
+      const res = await fetch(`/api/correct?page=${pageNum}&pageSize=${PAGE_SIZE}`);
       if (res.ok) {
         const data = await res.json();
-        setRecords(data);
+        if (append) {
+          setRecords((prev) => [...prev, ...data.items]);
+        } else {
+          setRecords(data.items);
+        }
+        setPage(data.page);
+        setTotalPages(data.totalPages);
       }
     } catch {
       toast.error("加载失败");
     } finally {
-      setLoading(false);
+      setLoadingState(false);
     }
   }, []);
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetchHistory();
+      fetchHistory(1);
     } else if (status === "unauthenticated") {
       router.push("/login");
     }
@@ -65,6 +82,10 @@ export default function CorrectionHistoryPage() {
     } catch {
       toast.error("删除失败");
     }
+  };
+
+  const handleLoadMore = () => {
+    fetchHistory(page + 1, true);
   };
 
   if (status === "loading" || loading) {
@@ -103,218 +124,336 @@ export default function CorrectionHistoryPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {records.map((record) => (
-            <Card key={record.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="flex-1 min-w-0">
-                    {/* 分数 */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-2xl font-bold text-primary">
-                        {record.totalScore}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        /{record.maxScore}
-                      </span>
-                    </div>
-                    {/* 作文摘要 */}
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {record.essayText}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0"
-                    onClick={() => handleDelete(record.id)}
+        <>
+          <div className="space-y-4">
+            {records.map((record) => {
+              const isExpanded = expandedId === record.id;
+              return (
+              <Card key={record.id} className={isExpanded ? "ring-1 ring-primary/20" : ""}>
+                <CardContent className="p-4">
+                  <div
+                    className="flex items-start justify-between gap-4 mb-3 cursor-pointer"
+                    onClick={() => setExpandedId(isExpanded ? null : record.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setExpandedId(isExpanded ? null : record.id);
+                      }
+                    }}
                   >
-                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="secondary" className="text-xs">
-                    {examLabels[record.examType as ExamType] || record.examType}
-                  </Badge>
-                  {record.sentenceCorrections.length > 0 && (
-                    <Badge variant="outline" className="text-xs gap-1">
-                      <FileCheck className="h-3 w-3" />
-                      {record.sentenceCorrections.length} 条批注
-                    </Badge>
-                  )}
-                  {record.grammarIssues.length > 0 && (
-                    <Badge variant="outline" className="text-xs gap-1">
-                      <Lightbulb className="h-3 w-3" />
-                      {record.grammarIssues.length} 个语法
-                    </Badge>
-                  )}
-                  {record.vocabSuggestions.length > 0 && (
-                    <Badge variant="outline" className="text-xs gap-1">
-                      <BookOpen className="h-3 w-3" />
-                      {record.vocabSuggestions.length} 个词汇
-                    </Badge>
-                  )}
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {new Date(record.createdAt).toLocaleDateString("zh-CN")}
-                  </span>
-                </div>
-
-                {/* 展开查看详情 */}
-                <Tabs defaultValue="comment" className="mt-3">
-                  <TabsList className="h-8 flex-wrap">
-                    <TabsTrigger value="comment" className="text-xs h-7 gap-1">
-                      <MessageSquareText className="h-3 w-3 shrink-0" />
-                      <span className="hidden sm:inline">总评</span>
-                    </TabsTrigger>
-                    {record.sentenceCorrections.length > 0 && (
-                      <TabsTrigger value="sentences" className="text-xs h-7 gap-1">
-                        <FileCheck className="h-3 w-3 shrink-0" />
-                        <span className="hidden sm:inline">逐句</span>
-                        ({record.sentenceCorrections.length})
-                      </TabsTrigger>
-                    )}
-                    {record.grammarIssues.length > 0 && (
-                      <TabsTrigger value="grammar" className="text-xs h-7 gap-1">
-                        <Lightbulb className="h-3 w-3 shrink-0" />
-                        <span className="hidden sm:inline">语法</span>
-                        ({record.grammarIssues.length})
-                      </TabsTrigger>
-                    )}
-                    {record.vocabSuggestions.length > 0 && (
-                      <TabsTrigger value="vocab" className="text-xs h-7 gap-1">
-                        <BookOpen className="h-3 w-3 shrink-0" />
-                        <span className="hidden sm:inline">词汇</span>
-                        ({record.vocabSuggestions.length})
-                      </TabsTrigger>
-                    )}
-                    {record.improvementSuggestions.length > 0 && (
-                      <TabsTrigger value="improvement" className="text-xs h-7 gap-1">
-                        <Sparkles className="h-3 w-3 shrink-0" />
-                        <span className="hidden sm:inline">优化</span>
-                        ({record.improvementSuggestions.length})
-                      </TabsTrigger>
-                    )}
-                  </TabsList>
-
-                  <TabsContent value="comment" className="mt-2">
-                    <div className="bg-muted/30 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-sm font-medium">分项得分</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl font-bold text-primary">
+                          {record.totalScore}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          /{record.maxScore}
+                        </span>
+                        <Badge variant="secondary" className="text-xs">
+                          {examLabels[record.examType as ExamType] || record.examType}
+                        </Badge>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                        <div className="text-center bg-background rounded-lg p-2">
-                          <p className="text-lg font-bold text-primary">{record.scores.content}</p>
-                          <p className="text-xs text-muted-foreground">内容</p>
-                        </div>
-                        <div className="text-center bg-background rounded-lg p-2">
-                          <p className="text-lg font-bold text-primary">{record.scores.structure}</p>
-                          <p className="text-xs text-muted-foreground">结构</p>
-                        </div>
-                        <div className="text-center bg-background rounded-lg p-2">
-                          <p className="text-lg font-bold text-primary">{record.scores.grammar}</p>
-                          <p className="text-xs text-muted-foreground">语法</p>
-                        </div>
-                        <div className="text-center bg-background rounded-lg p-2">
-                          <p className="text-lg font-bold text-primary">{record.scores.vocabulary}</p>
-                          <p className="text-xs text-muted-foreground">词汇</p>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {record.overallComment}
+                      <p className={`text-sm text-muted-foreground ${isExpanded ? "" : "line-clamp-2"}`}>
+                        {record.essayText}
                       </p>
                     </div>
-                  </TabsContent>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(record.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                      </Button>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
 
-                  <TabsContent value="sentences" className="mt-2 space-y-2">
-                    {record.sentenceCorrections.map((sc, i) => (
-                      <div key={i} className="bg-muted/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-medium text-muted-foreground">#{i + 1}</span>
-                          {sc.revised !== sc.original && (
-                            <Badge variant="outline" className="text-xs text-green-600">有修改</Badge>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {record.sentenceCorrections?.length > 0 && (
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <FileCheck className="h-3 w-3" />
+                        {record.sentenceCorrections.length} 句批注
+                      </Badge>
+                    )}
+                    {record.grammarIssues?.length > 0 && (
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <Lightbulb className="h-3 w-3" />
+                        {record.grammarIssues.length} 语法
+                      </Badge>
+                    )}
+                    {record.vocabSuggestions?.length > 0 && (
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <BookOpen className="h-3 w-3" />
+                        {record.vocabSuggestions.length} 词汇
+                      </Badge>
+                    )}
+                    {record.improvementSuggestions?.length > 0 && (
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <Sparkles className="h-3 w-3" />
+                        {record.improvementSuggestions.length} 优化
+                      </Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {new Date(record.createdAt).toLocaleDateString("zh-CN")}
+                    </span>
+                  </div>
+
+                  {/* 展开详情 */}
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t">
+                      <Tabs defaultValue="overall">
+                        <TabsList className="grid w-full grid-cols-5">
+                          <TabsTrigger value="overall" className="text-xs gap-1">
+                            <MessageSquareText className="h-3 w-3 shrink-0" />
+                            <span className="hidden sm:inline">总评</span>
+                          </TabsTrigger>
+                          <TabsTrigger value="sentences" className="text-xs gap-1">
+                            <FileCheck className="h-3 w-3 shrink-0" />
+                            <span className="hidden sm:inline">逐句</span>
+                            ({record.sentenceCorrections?.length || 0})
+                          </TabsTrigger>
+                          <TabsTrigger value="grammar" className="text-xs gap-1">
+                            <Lightbulb className="h-3 w-3 shrink-0" />
+                            <span className="hidden sm:inline">语法</span>
+                            ({record.grammarIssues?.length || 0})
+                          </TabsTrigger>
+                          <TabsTrigger value="vocab" className="text-xs gap-1">
+                            <BookOpen className="h-3 w-3 shrink-0" />
+                            <span className="hidden sm:inline">词汇</span>
+                            ({record.vocabSuggestions?.length || 0})
+                          </TabsTrigger>
+                          <TabsTrigger value="improvement" className="text-xs gap-1">
+                            <Sparkles className="h-3 w-3 shrink-0" />
+                            <span className="hidden sm:inline">优化</span>
+                            ({record.improvementSuggestions?.length || 0})
+                          </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="overall" className="mt-3">
+                          <div className="flex gap-2">
+                            <MessageSquareText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                            <p className="text-sm text-muted-foreground">{record.overallComment || "暂无总评"}</p>
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="sentences" className="mt-3 space-y-2">
+                          {!record.sentenceCorrections?.length ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">暂无逐句批注</p>
+                          ) : (
+                            record.sentenceCorrections.map((sc: { original: string; revised: string; comment: string }, i: number) => (
+                              <CollapsibleSection
+                                key={i}
+                                summary={
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-xs font-medium text-muted-foreground shrink-0">#{i + 1}</span>
+                                    <span className="text-sm line-clamp-1">{sc.original}</span>
+                                    {sc.revised !== sc.original && (
+                                      <Badge variant="outline" className="text-xs text-green-600 shrink-0">有修改</Badge>
+                                    )}
+                                  </div>
+                                }
+                              >
+                                <div className="space-y-2 text-sm">
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground">原句</span>
+                                    <p className="text-sm mt-0.5">{sc.original}</p>
+                                  </div>
+                                  {sc.revised !== sc.original && (
+                                    <div>
+                                      <span className="text-xs font-medium text-muted-foreground">修改建议</span>
+                                      <p className="text-sm text-green-600 dark:text-green-400 mt-0.5">{sc.revised}</p>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground">点评</span>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{sc.comment}</p>
+                                  </div>
+                                </div>
+                              </CollapsibleSection>
+                            ))
                           )}
-                        </div>
-                        <p className="text-sm">{sc.original}</p>
-                        {sc.revised !== sc.original && (
-                          <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                            → {sc.revised}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1.5">{sc.comment}</p>
-                      </div>
-                    ))}
-                  </TabsContent>
+                        </TabsContent>
 
-                  <TabsContent value="grammar" className="mt-2 space-y-2">
-                    {record.grammarIssues.map((note, i) => (
-                      <div key={i} className="bg-muted/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span className="font-semibold text-sm">{note.point}</span>
-                          <Badge variant={levelVariant[note.level] || "secondary"} className="text-xs">
-                            {note.level}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{note.explanation}</p>
-                        {note.examples && note.examples.length > 0 && (
-                          <p className="text-xs italic mt-1.5 text-muted-foreground border-l-2 border-primary/20 pl-2">
-                            {note.examples[0]}
-                          </p>
-                        )}
-                        {note.commonMistakes && note.commonMistakes.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {note.commonMistakes.map((m, j) => (
-                              <div key={j} className="bg-orange-50 dark:bg-orange-950/30 rounded p-2">
-                                <p className="text-xs text-red-600">❌ {m.error}</p>
-                                <p className="text-xs text-green-600">✅ {m.correction}</p>
+                        <TabsContent value="grammar" className="mt-3 space-y-2">
+                          {!record.grammarIssues?.length ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">无语法问题</p>
+                          ) : (
+                            record.grammarIssues.map((note: any, i: number) => (
+                              <CollapsibleSection
+                                key={i}
+                                summary={
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-sm">{note.point}</span>
+                                    <Badge variant="outline" className="text-xs">{note.level}</Badge>
+                                    <span className="text-xs text-muted-foreground line-clamp-1">{note.function}</span>
+                                  </div>
+                                }
+                                action={
+                                  <SaveButton type="grammar" data={{
+                                    point: note.point, level: note.level, function: note.function,
+                                    structure: note.structure, explanation: note.explanation,
+                                    examples: note.examples, commonMistakes: note.commonMistakes,
+                                    examTip: note.examTip || "",
+                                  }} source="history" />
+                                }
+                              >
+                                <div className="space-y-2 text-sm">
+                                  {note.structure && (
+                                    <div className="flex gap-1.5">
+                                      <Link2 className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
+                                      <p className="text-xs font-mono bg-muted/50 rounded px-2 py-0.5">{note.structure}</p>
+                                    </div>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">{note.explanation}</p>
+                                  {note.examples?.length > 0 && (
+                                    <div className="flex gap-1.5">
+                                      <ListChecks className="h-3.5 w-3.5 text-purple-500 shrink-0 mt-0.5" />
+                                      <div className="space-y-0.5">
+                                        {note.examples.map((ex: string, j: number) => (
+                                          <p key={j} className="text-xs italic border-l-2 border-primary/20 pl-2 text-muted-foreground">{ex}</p>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {note.commonMistakes?.length > 0 && typeof note.commonMistakes[0] === "object" && (
+                                    <div className="flex gap-1.5">
+                                      <AlertTriangle className="h-3.5 w-3.5 text-orange-500 shrink-0 mt-0.5" />
+                                      <div className="space-y-1 flex-1">
+                                        {note.commonMistakes.map((m: any, j: number) => (
+                                          <div key={j} className="bg-orange-50 dark:bg-orange-950/30 rounded p-2">
+                                            <p className="text-xs text-red-600">❌ {m.error}</p>
+                                            <p className="text-xs text-green-600">✅ {m.correction}</p>
+                                            <p className="text-xs text-muted-foreground">💡 {m.explanation}</p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {note.examTip && (
+                                    <div className="flex gap-1.5">
+                                      <Target className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
+                                      <p className="text-xs text-muted-foreground">{note.examTip}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </CollapsibleSection>
+                            ))
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="vocab" className="mt-3 space-y-2">
+                          {!record.vocabSuggestions?.length ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">无词汇建议</p>
+                          ) : (
+                            record.vocabSuggestions.map((note: any, i: number) => (
+                              <CollapsibleSection
+                                key={i}
+                                summary={
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-sm text-primary">{note.word}</span>
+                                    <Badge variant="outline" className="text-xs">{note.chinese}</Badge>
+                                    <Badge variant="outline" className="text-xs">{note.level}</Badge>
+                                  </div>
+                                }
+                                action={
+                                  <SaveButton type="word" data={{
+                                    word: note.word, chinese: note.chinese,
+                                    collocations: note.collocations || [], synonyms: note.synonyms || [],
+                                    level: note.level, usage: note.usage,
+                                    examples: note.examples || [], commonErrors: note.commonErrors || [],
+                                    examFocus: note.examFocus || "",
+                                  }} source="history" />
+                                }
+                              >
+                                <div className="space-y-2 text-sm">
+                                  {note.collocations?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {note.collocations.map((c: string, j: number) => (
+                                        <Badge key={j} variant="secondary" className="text-xs font-mono">{c}</Badge>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {note.synonyms?.length > 0 && (
+                                    <div className="flex gap-1.5">
+                                      <ArrowLeftRight className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
+                                      <p className="text-xs text-muted-foreground">{note.synonyms.join(" · ")}</p>
+                                    </div>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">{note.usage}</p>
+                                  {note.examples?.length > 0 && note.examples.map((ex: string, j: number) => (
+                                    <p key={j} className="text-xs italic border-l-2 border-primary/20 pl-2 text-muted-foreground">{ex}</p>
+                                  ))}
+                                  {note.examFocus && (
+                                    <div className="flex gap-1.5">
+                                      <Target className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
+                                      <p className="text-xs text-muted-foreground">{note.examFocus}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </CollapsibleSection>
+                            ))
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="improvement" className="mt-3 space-y-2">
+                          {!record.improvementSuggestions?.length ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">暂无优化建议</p>
+                          ) : (
+                            record.improvementSuggestions.map((item: { suggestion: string; reason: string }, i: number) => (
+                              <div key={i} className="border rounded-lg p-3 bg-muted/10 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0 mt-0.5">
+                                    {i + 1}
+                                  </span>
+                                  <div className="space-y-1.5 flex-1">
+                                    <p className="text-sm font-medium">{item.suggestion}</p>
+                                    <div className="flex gap-1.5">
+                                      <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                      <p className="text-xs text-muted-foreground">{item.reason}</p>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </TabsContent>
+                            ))
+                          )}
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )})}
+          </div>
 
-                  <TabsContent value="vocab" className="mt-2 space-y-2">
-                    {record.vocabSuggestions.map((note, i) => (
-                      <div key={i} className="bg-muted/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span className="font-semibold text-sm text-primary">{note.word}</span>
-                          <Badge variant="outline" className="text-xs">{note.chinese}</Badge>
-                          <Badge variant={levelVariant[note.level] || "secondary"} className="text-xs">{note.level}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{note.usage}</p>
-                        {note.collocations && note.collocations.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {note.collocations.map((c, j) => (
-                              <Badge key={j} variant="secondary" className="text-xs font-mono">{c}</Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </TabsContent>
-
-                  <TabsContent value="improvement" className="mt-2 space-y-2">
-                    {record.improvementSuggestions.map((item, i) => (
-                      <div key={i} className="bg-muted/20 rounded-lg p-3">
-                        <div className="flex items-start gap-3">
-                          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0 mt-0.5">
-                            {i + 1}
-                          </span>
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium">{item.suggestion}</p>
-                            <p className="text-xs text-muted-foreground">{item.reason}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+          {page < totalPages && (
+            <div className="mt-6 text-center">
+              <Button
+                variant="ghost"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="gap-2"
+              >
+                {loadingMore ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+                加载更多 ({page}/{totalPages})
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

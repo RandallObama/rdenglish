@@ -53,9 +53,9 @@ export function CollapsibleSection({
         </div>
       </div>
 
-      {/* 展开内容 — CSS Grid 动画 */}
+      {/* 展开内容 */}
       <div
-        className={`grid transition-all duration-200 ease-in-out ${
+        className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${
           open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         }`}
       >

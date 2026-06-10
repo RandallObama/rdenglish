@@ -8,7 +8,7 @@ import { toast } from "sonner";
 interface SaveButtonProps {
   type: "word" | "grammar";
   data: Record<string, unknown>;
-  source: "translate" | "correct";
+  source: "translate" | "correct" | "history";
   size?: "sm" | "default";
 }
 

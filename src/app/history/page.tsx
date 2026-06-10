@@ -7,7 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Trash2, BookOpen, Lightbulb, Clock } from "lucide-react";
+import { Loader2, Trash2, BookOpen, Lightbulb, Clock, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { SaveButton } from "@/components/SaveButton";
+import type { GrammarNote, VocabNote } from "@/types";
 import { toast } from "sonner";
 import Link from "next/link";
 import type { WritingRecord } from "@/types";
@@ -18,29 +21,43 @@ const styleLabels: Record<string, string> = {
   business: "商务",
 };
 
+const PAGE_SIZE = 15;
+
 export default function HistoryPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [records, setRecords] = useState<WritingRecord[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (pageNum: number, append = false) => {
+    const setLoadingState = append ? setLoadingMore : setLoading;
+    setLoadingState(true);
     try {
-      const res = await fetch("/api/history");
+      const res = await fetch(`/api/history?page=${pageNum}&pageSize=${PAGE_SIZE}`);
       if (res.ok) {
         const data = await res.json();
-        setRecords(data);
+        if (append) {
+          setRecords((prev) => [...prev, ...data.items]);
+        } else {
+          setRecords(data.items);
+        }
+        setPage(data.page);
+        setTotalPages(data.totalPages);
       }
     } catch {
       toast.error("加载失败");
     } finally {
-      setLoading(false);
+      setLoadingState(false);
     }
   }, []);
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetchHistory();
+      fetchHistory(1);
     } else if (status === "unauthenticated") {
       router.push("/login");
     }
@@ -56,6 +73,10 @@ export default function HistoryPage() {
     } catch {
       toast.error("删除失败");
     }
+  };
+
+  const handleLoadMore = () => {
+    fetchHistory(page + 1, true);
   };
 
   if (status === "loading" || loading) {
@@ -94,110 +115,228 @@ export default function HistoryPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {records.map((record) => (
-            <Card key={record.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                      {record.sourceText}
-                    </p>
-                    <p className="text-base line-clamp-3 whitespace-pre-wrap">
-                      {record.resultText}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0"
-                    onClick={() => handleDelete(record.id)}
+        <>
+          <div className="space-y-4">
+            {records.map((record) => {
+              const isExpanded = expandedId === record.id;
+              return (
+              <Card key={record.id} className={isExpanded ? "ring-1 ring-primary/20" : ""}>
+                <CardContent className="p-4">
+                  <div
+                    className="flex items-start justify-between gap-4 mb-3 cursor-pointer"
+                    onClick={() => setExpandedId(isExpanded ? null : record.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setExpandedId(isExpanded ? null : record.id);
+                      }
+                    }}
                   >
-                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                  </Button>
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                        {record.sourceText}
+                      </p>
+                      <p className={`text-base whitespace-pre-wrap ${isExpanded ? "" : "line-clamp-3"}`}>
+                        {record.resultText}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(record.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                      </Button>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="secondary" className="text-xs">
-                    {styleLabels[record.style] || record.style}
-                  </Badge>
-                  {record.grammarNotes.length > 0 && (
-                    <Badge variant="outline" className="text-xs gap-1">
-                      <Lightbulb className="h-3 w-3" />
-                      {record.grammarNotes.length} 个语法点
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="secondary" className="text-xs">
+                      {styleLabels[record.style] || record.style}
                     </Badge>
-                  )}
-                  {record.vocabNotes.length > 0 && (
-                    <Badge variant="outline" className="text-xs gap-1">
-                      <BookOpen className="h-3 w-3" />
-                      {record.vocabNotes.length} 个词汇
-                    </Badge>
-                  )}
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {new Date(record.createdAt).toLocaleDateString("zh-CN")}
-                  </span>
-                </div>
-
-                {/* 展开查看详情 */}
-                <Tabs defaultValue="result" className="mt-3">
-                  <TabsList className="h-8">
-                    <TabsTrigger value="result" className="text-xs h-7">
-                      翻译
-                    </TabsTrigger>
                     {record.grammarNotes.length > 0 && (
-                      <TabsTrigger value="grammar" className="text-xs h-7">
-                        语法
-                      </TabsTrigger>
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <Lightbulb className="h-3 w-3" />
+                        {record.grammarNotes.length} 个语法点
+                      </Badge>
                     )}
                     {record.vocabNotes.length > 0 && (
-                      <TabsTrigger value="vocab" className="text-xs h-7">
-                        词汇
-                      </TabsTrigger>
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <BookOpen className="h-3 w-3" />
+                        {record.vocabNotes.length} 个词汇
+                      </Badge>
                     )}
-                  </TabsList>
-                  <TabsContent value="result" className="mt-2">
-                    <p className="text-sm bg-muted/50 rounded-lg p-3 whitespace-pre-wrap">
-                      {record.resultText}
-                    </p>
-                  </TabsContent>
-                  <TabsContent value="grammar" className="mt-2 space-y-2">
-                    {record.grammarNotes.map((note, i) => (
-                      <div key={i} className="bg-muted/20 rounded-lg p-3">
-                        <Badge variant="secondary" className="text-xs mb-1">
-                          {note.point}
-                        </Badge>
-                        <p className="text-xs text-muted-foreground">
-                          {note.explanation}
-                        </p>
-                        {note.examples && note.examples.length > 0 && (
-                          <p className="text-xs italic mt-1 text-muted-foreground">
-                            {note.examples[0]}
+                    <span className="text-xs text-muted-foreground flex items-center gap-1 ml-auto">
+                      <Clock className="h-3 w-3" />
+                      {new Date(record.createdAt).toLocaleDateString("zh-CN")}
+                    </span>
+                  </div>
+
+                  {/* 展开详情 */}
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t space-y-3">
+                      {/* 翻译结果完整展示 */}
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">翻译结果</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{record.resultText}</p>
+                      </div>
+
+                      {/* 语法要点 */}
+                      {record.grammarNotes.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                            <Lightbulb className="h-3 w-3" />
+                            语法要点 ({record.grammarNotes.length})
                           </p>
-                        )}
-                      </div>
-                    ))}
-                  </TabsContent>
-                  <TabsContent value="vocab" className="mt-2 space-y-2">
-                    {record.vocabNotes.map((note, i) => (
-                      <div key={i} className="bg-muted/20 rounded-lg p-3">
-                        <span className="font-semibold text-sm">
-                          {note.word}
-                        </span>
-                        <Badge variant="outline" className="text-xs ml-2">
-                          {note.chinese}
-                        </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {note.usage}
-                        </p>
-                      </div>
-                    ))}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                          <div className="space-y-2">
+                            {record.grammarNotes.map((note: GrammarNote, i: number) => (
+                              <CollapsibleSection
+                                key={i}
+                                summary={
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-sm">{note.point}</span>
+                                    <Badge variant="outline" className="text-xs">{note.level}</Badge>
+                                    <span className="text-xs text-muted-foreground line-clamp-1">{note.function}</span>
+                                  </div>
+                                }
+                                action={
+                                  <SaveButton
+                                    type="grammar"
+                                    data={{
+                                      point: note.point,
+                                      level: note.level,
+                                      function: note.function,
+                                      structure: note.structure,
+                                      explanation: note.explanation,
+                                      examples: note.examples,
+                                      commonMistakes: note.commonMistakes,
+                                      examTip: note.examTip || "",
+                                    }}
+                                    source="history"
+                                  />
+                                }
+                              >
+                                <div className="space-y-2 text-sm">
+                                  {note.structure && (
+                                    <div>
+                                      <span className="text-xs text-muted-foreground">结构公式</span>
+                                      <p className="font-mono bg-muted/50 rounded px-2 py-0.5 mt-0.5 text-xs">{note.structure}</p>
+                                    </div>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">{note.explanation}</p>
+                                  {note.examples?.length > 0 && (
+                                    <div>
+                                      <span className="text-xs text-muted-foreground">例句</span>
+                                      {note.examples.map((ex: string, j: number) => (
+                                        <p key={j} className="text-xs italic border-l-2 border-primary/20 pl-2 mt-0.5 text-muted-foreground">{ex}</p>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {note.examTip && (
+                                    <p className="text-xs text-muted-foreground">🎯 {note.examTip}</p>
+                                  )}
+                                </div>
+                              </CollapsibleSection>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 词汇笔记 */}
+                      {record.vocabNotes.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                            <BookOpen className="h-3 w-3" />
+                            词汇笔记 ({record.vocabNotes.length})
+                          </p>
+                          <div className="space-y-2">
+                            {record.vocabNotes.map((note: VocabNote, i: number) => (
+                              <CollapsibleSection
+                                key={i}
+                                summary={
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-sm text-primary">{note.word}</span>
+                                    <Badge variant="outline" className="text-xs">{note.chinese}</Badge>
+                                    <Badge variant="outline" className="text-xs">{note.level}</Badge>
+                                  </div>
+                                }
+                                action={
+                                  <SaveButton
+                                    type="word"
+                                    data={{
+                                      word: note.word,
+                                      chinese: note.chinese,
+                                      collocations: note.collocations || [],
+                                      synonyms: note.synonyms || [],
+                                      level: note.level,
+                                      usage: note.usage,
+                                      examples: note.examples || [],
+                                      commonErrors: note.commonErrors || [],
+                                      examFocus: note.examFocus || "",
+                                    }}
+                                    source="history"
+                                  />
+                                }
+                              >
+                                <div className="space-y-2 text-sm">
+                                  {note.collocations?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {note.collocations.map((c: string, j: number) => (
+                                        <Badge key={j} variant="secondary" className="text-xs font-mono">{c}</Badge>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">{note.usage}</p>
+                                  {note.examples?.length > 0 && note.examples.map((ex: string, j: number) => (
+                                    <p key={j} className="text-xs italic border-l-2 border-primary/20 pl-2 text-muted-foreground">{ex}</p>
+                                  ))}
+                                  {note.examFocus && (
+                                    <p className="text-xs text-muted-foreground">🎯 {note.examFocus}</p>
+                                  )}
+                                </div>
+                              </CollapsibleSection>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )})}
+          </div>
+
+          {/* 加载更多 */}
+          {page < totalPages && (
+            <div className="mt-6 text-center">
+              <Button
+                variant="ghost"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="gap-2"
+              >
+                {loadingMore ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+                加载更多 ({page}/{totalPages})
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

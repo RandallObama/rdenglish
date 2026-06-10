@@ -66,13 +66,8 @@ const examStandards: Record<
   },
 };
 
-export async function correctEssay(
-  essayText: string,
-  examType: ExamType = "general"
-): Promise<CorrectionResult> {
-  const standard = examStandards[examType];
-
-  const systemPrompt = `你是一位资深英语阅卷老师，拥有15年${standard.name}阅卷经验。请你批改用户提交的英语作文。
+function makeCorrectSystemPrompt(standard: typeof examStandards[ExamType]) {
+  return `你是一位资深英语阅卷老师，拥有15年${standard.name}阅卷经验。请你批改用户提交的英语作文。
 
 ## 评分标准
 ${standard.criteria}
@@ -139,6 +134,14 @@ ${standard.criteria}
   "improvementSuggestions": [{"suggestion": "建议内容", "reason": "建议理由"}],
   "overallComment": "总评文本"
 }`;
+}
+
+export async function correctEssay(
+  essayText: string,
+  examType: ExamType = "general"
+): Promise<CorrectionResult> {
+  const standard = examStandards[examType];
+  const systemPrompt = makeCorrectSystemPrompt(standard);
 
   const response = await client.chat.completions.create({
     model: "deepseek-chat",
@@ -171,6 +174,68 @@ ${standard.criteria}
       vocabSuggestions: [],
       improvementSuggestions: [],
       overallComment: content,
+    };
+  }
+}
+
+/**
+ * 流式批改 — 边生成边返回文本块，迭代结束时 return 完整的 CorrectionResult。
+ * 用法：
+ *   const iter = streamCorrectEssay(text, examType)[Symbol.asyncIterator]();
+ *   let result: CorrectionResult;
+ *   for await (const chunk of iter) { sendChunk(chunk); }
+ *   // iter 的 return 值包含最终结果（通过 next() 获取）
+ *
+ * 在 API 层通常的做法是把迭代当生成器用。
+ */
+export async function* streamCorrectEssay(
+  essayText: string,
+  examType: ExamType = "general"
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any {
+  const standard = examStandards[examType];
+  const systemPrompt = makeCorrectSystemPrompt(standard);
+
+  const response = await client.chat.completions.create({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: essayText },
+    ],
+    temperature: 0.4,
+    max_tokens: 8192,
+    stream: true,
+  });
+
+  let fullContent = "";
+  for await (const chunk of response) {
+    const delta = (chunk as unknown as Record<string, unknown>).choices as any[] | undefined;
+    const content = delta?.[0]?.delta?.content as string | undefined;
+    if (content) {
+      fullContent += content;
+      yield content;
+    }
+  }
+
+  let jsonStr = fullContent.trim();
+  if (jsonStr.startsWith("```")) {
+    jsonStr = jsonStr
+      .replace(/```json?\s*\n?/g, "")
+      .replace(/```\s*\n?/g, "");
+  }
+
+  try {
+    return JSON.parse(jsonStr) as CorrectionResult;
+  } catch {
+    return {
+      totalScore: 0,
+      maxScore: standard.maxScore,
+      scores: { content: 0, structure: 0, grammar: 0, vocabulary: 0 },
+      sentenceCorrections: [],
+      grammarIssues: [],
+      vocabSuggestions: [],
+      improvementSuggestions: [],
+      overallComment: fullContent,
     };
   }
 }

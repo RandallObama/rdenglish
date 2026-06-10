@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { translateAndAnalyze } from "@/lib/deepseek";
-import { checkUsage, incrementUsage } from "@/lib/rate-limit";
+import { translateAndAnalyze, streamTranslateAndAnalyze } from "@/lib/deepseek";
+import { consumeUsage } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
+import { createSSEResponse } from "@/lib/stream";
 import type { ExamType, WritingStyle } from "@/types";
 
 export async function POST(request: Request) {
@@ -11,8 +12,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "请先登录" }, { status: 401 });
   }
 
-  const { remaining } = await checkUsage(session.user.id);
-  if (remaining <= 0) {
+  const userId = session.user.id;
+  const usage = await consumeUsage(userId);
+  if (!usage.allowed) {
     return NextResponse.json(
       { error: "今日免费次数已用完，请升级到 Pro 版" },
       { status: 429 }
@@ -21,11 +23,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const {
-      text,
-      style = "daily",
-      examType = "general",
-    } = body;
+    const { text, style = "daily", examType = "general", stream = true } = body;
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return NextResponse.json({ error: "请输入文本" }, { status: 400 });
@@ -50,16 +48,55 @@ export async function POST(request: Request) {
       ? (examType as ExamType)
       : "general";
 
-    const result = await translateAndAnalyze(
-      text.trim(),
-      safeStyle,
-      safeExamType
-    );
+    // ── 流式路径：SSE 实时推送 AI 生成文本 ──
+    if (stream) {
+      return createSSEResponse(async (send) => {
+        const iter = streamTranslateAndAnalyze(text.trim(), safeStyle, safeExamType);
+        let result: Awaited<ReturnType<typeof translateAndAnalyze>> | null = null;
 
-    // 保存到历史记录
+        // 消费生成器：逐块发送，获取最终 return 值
+        const gen = iter[Symbol.asyncIterator]();
+        while (true) {
+          const { value, done } = await gen.next();
+          if (done) {
+            result = value as Awaited<ReturnType<typeof translateAndAnalyze>>;
+            break;
+          }
+          send({ type: "chunk", content: value as string });
+        }
+
+        if (!result) {
+          send({ type: "error", message: "AI 返回为空" });
+          return;
+        }
+
+        // 保存到数据库
+        const writing = await prisma.writing.create({
+          data: {
+            userId: userId,
+            sourceText: text.trim(),
+            resultText: result.english,
+            style: safeStyle,
+            examType: safeExamType,
+            grammarNotes: JSON.stringify(result.grammarNotes),
+            vocabNotes: JSON.stringify(result.vocabNotes),
+          },
+        });
+
+        send({
+          type: "done",
+          result: { id: writing.id, ...result, remaining: usage.remaining },
+          remaining: usage.remaining,
+        });
+      });
+    }
+
+    // ── 兼容旧非流式路径 ──
+    const result = await translateAndAnalyze(text.trim(), safeStyle, safeExamType);
+
     const writing = await prisma.writing.create({
       data: {
-        userId: session.user.id,
+        userId: userId,
         sourceText: text.trim(),
         resultText: result.english,
         style: safeStyle,
@@ -69,14 +106,10 @@ export async function POST(request: Request) {
       },
     });
 
-    await incrementUsage(session.user.id);
-
-    const { remaining: newRemaining } = await checkUsage(session.user.id);
-
     return NextResponse.json({
       id: writing.id,
       ...result,
-      remaining: newRemaining,
+      remaining: usage.remaining,
     });
   } catch (error) {
     console.error("Translation error:", error);

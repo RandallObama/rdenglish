@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const CACHE_HEADER = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
+
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -28,7 +30,8 @@ export async function GET() {
       examFocus: w.examFocus || "",
       source: w.source,
       createdAt: w.createdAt.toISOString(),
-    }))
+    })),
+    { headers: CACHE_HEADER }
   );
 }
 
