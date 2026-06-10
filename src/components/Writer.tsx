@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { LoadingProgress } from "@/components/LoadingProgress";
 import { Loader2, Send, GraduationCap, PenLine, Sparkles, X, Wand2 } from "lucide-react";
+import { LoadingProgress } from "@/components/LoadingProgress";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { readSSE } from "@/lib/stream";
 import type { GrammarNote, VocabNote, ExamType, WritingStyle } from "@/types";
 
 interface WriterProps {
@@ -43,6 +44,8 @@ export function Writer({ onResult, onError }: WriterProps) {
   const [style, setStyle] = useState<string>("daily");
   const [examType, setExamType] = useState<string>("general");
   const [loading, setLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
+  const [streaming, setStreaming] = useState(false);
 
   // 伴写状态
   const [cowriteLoading, setCowriteLoading] = useState(false);
@@ -68,33 +71,50 @@ export function Writer({ onResult, onError }: WriterProps) {
     if (!text.trim() || loading) return;
 
     setLoading(true);
+    setStreamingText("");
+    setStreaming(false);
+
     try {
       const res = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: text.trim(),
-          style,
-          examType,
-        }),
+        body: JSON.stringify({ text: text.trim(), style, examType, stream: true }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.push("/login");
-          return;
-        }
-        onError(data.error || "翻译失败");
+      if (res.status === 401) {
+        router.push("/login");
         return;
       }
 
-      onResult(data);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "翻译失败" }));
+        onError(data.error || "翻译失败");
+        setLoading(false);
+        return;
+      }
+
+      // 消费 SSE 流
+      let firstChunk = false;
+      for await (const event of readSSE(res)) {
+        if (event.type === "chunk") {
+          if (!firstChunk) {
+            firstChunk = true;
+            setStreaming(true);
+          }
+          setStreamingText((prev) => prev + event.content);
+        } else if (event.type === "done") {
+          onResult(event.result as Parameters<typeof onResult>[0]);
+          setStreamingText("");
+          setStreaming(false);
+        } else if (event.type === "error") {
+          onError(event.message);
+        }
+      }
     } catch {
       onError("网络错误，请稍后重试");
     } finally {
       setLoading(false);
+      setStreaming(false);
     }
   };
 
@@ -108,20 +128,21 @@ export function Writer({ onResult, onError }: WriterProps) {
       const res = await fetch("/api/cowrite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text.trim(), style }),
+        body: JSON.stringify({ text: text.trim(), style, stream: false }),
       });
 
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.push("/login");
-          return;
-        }
-        const err = await res.json();
-        toast.error(err.error || "续写失败");
+      if (res.status === 401) {
+        router.push("/login");
         return;
       }
 
       const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "续写失败");
+        return;
+      }
+
       if (data.suggestions && data.suggestions.length > 0) {
         setSuggestions(data.suggestions);
         setShowSuggestions(true);
@@ -252,9 +273,11 @@ export function Writer({ onResult, onError }: WriterProps) {
         )}
       </div>
 
-      {loading ? (
-        <LoadingProgress loading={loading} label="正在深度分析..." />
-      ) : (
+      {/* 流式输出 — 使用 LoadingProgress 替代原始 JSON 流 */}
+      <LoadingProgress loading={loading && !streaming} label="正在连接 AI..." />
+      <LoadingProgress loading={loading && streaming} label="正在深度分析中..." />
+
+      {!loading && (
         <Button
           onClick={handleSubmit}
           disabled={!text.trim()}

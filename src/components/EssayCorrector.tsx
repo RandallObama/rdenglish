@@ -11,9 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Send, GraduationCap, Loader2 } from "lucide-react";
 import { LoadingProgress } from "@/components/LoadingProgress";
-import { Send, GraduationCap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { readSSE } from "@/lib/stream";
 import type { CorrectionResult, ExamType } from "@/types";
 
 interface EssayCorrectorProps {
@@ -34,35 +35,57 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
   const [essay, setEssay] = useState("");
   const [examType, setExamType] = useState<string>("general");
   const [loading, setLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
+  const [streaming, setStreaming] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async () => {
     if (!essay.trim() || loading) return;
 
     setLoading(true);
+    setStreamingText("");
+    setStreaming(false);
+
     try {
       const res = await fetch("/api/correct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ essay: essay.trim(), examType }),
+        body: JSON.stringify({ essay: essay.trim(), examType, stream: true }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.push("/login");
-          return;
-        }
-        onError(data.error || "批改失败");
+      if (res.status === 401) {
+        router.push("/login");
         return;
       }
 
-      onResult(data);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "批改失败" }));
+        onError(data.error || "批改失败");
+        setLoading(false);
+        return;
+      }
+
+      let firstChunk = false;
+      for await (const event of readSSE(res)) {
+        if (event.type === "chunk") {
+          if (!firstChunk) {
+            firstChunk = true;
+            setStreaming(true);
+          }
+          setStreamingText((prev) => prev + event.content);
+        } else if (event.type === "done") {
+          onResult(event.result as Parameters<typeof onResult>[0]);
+          setStreamingText("");
+          setStreaming(false);
+        } else if (event.type === "error") {
+          onError(event.message);
+        }
+      }
     } catch {
       onError("网络错误，请稍后重试");
     } finally {
       setLoading(false);
+      setStreaming(false);
     }
   };
 
@@ -98,9 +121,11 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
         maxLength={5000}
       />
 
-      {loading ? (
-        <LoadingProgress loading={loading} label="正在批改..." />
-      ) : (
+      {/* 流式输出 — 使用 LoadingProgress 替代原始 JSON 流 */}
+      <LoadingProgress loading={loading && !streaming} label="正在连接 AI..." />
+      <LoadingProgress loading={loading && streaming} label="正在深度批改中..." />
+
+      {!loading && (
         <Button
           onClick={handleSubmit}
           disabled={!essay.trim()}
