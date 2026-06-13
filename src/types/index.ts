@@ -148,6 +148,7 @@ export interface GrammarPattern {
   lastOccurred: string;             // 最近出现日期 ISO
   trend: "up" | "down" | "stable"; // up=恶化中, down=改善中, stable=平稳
   totalSpan: number;                // 跨度天数
+  avgPerMonth: number;              // 月均出现次数
   levels: string[];                 // 难度等级（去重）
   sampleMistakes: CommonMistake[];  // 最多 3 条典型错误
 }
