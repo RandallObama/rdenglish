@@ -70,6 +70,7 @@ export interface CorrectionResult {
   vocabSuggestions: VocabNote[];
   improvementSuggestions: ImprovementSuggestion[];
   overallComment: string;
+  examType?: ExamType;
 }
 
 // ========== 历史记录 ==========
@@ -137,4 +138,38 @@ export interface UsageInfo {
 }
 
 export type WritingStyle = "academic" | "business" | "daily";
-export type ExamType = "middle" | "high" | "cet4" | "cet6" | "ielts" | "general";
+export type ExamType = "middle" | "high" | "cet4" | "cet6" | "ielts" | "general" | "literary";
+
+// ========== 语法病历本 ==========
+export interface GrammarPattern {
+  point: string;                    // 语法点名称，如 "虚拟语气"
+  count: number;                    // 出现次数
+  firstOccurred: string;            // 首次出现日期 ISO
+  lastOccurred: string;             // 最近出现日期 ISO
+  trend: "up" | "down" | "stable"; // up=恶化中, down=改善中, stable=平稳
+  totalSpan: number;                // 跨度天数
+  levels: string[];                 // 难度等级（去重）
+  sampleMistakes: CommonMistake[];  // 最多 3 条典型错误
+}
+
+export interface GrammarPatternAnalysis {
+  patterns: GrammarPattern[];
+  totalCorrections: number;
+  totalIssues: number;
+  uniquePoints: number;
+  topPattern: string | null;
+  topPatternCount: number;
+}
+
+export interface GrammarExercise {
+  type: "fill-blank" | "error-correction";
+  question: string;
+  answer: string;
+  explanation: string;
+  point: string;
+}
+
+export interface GrammarExerciseResponse {
+  exercises: GrammarExercise[];
+  remaining: number;
+}

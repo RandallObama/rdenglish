@@ -6,7 +6,7 @@ import { StatsCards } from "@/components/StatsCards";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { PenLine, GraduationCap, ArrowRight, Crown } from "lucide-react";
+import { PenLine, GraduationCap, ArrowRight, Crown, Stethoscope } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -16,6 +16,9 @@ export default async function DashboardPage() {
 
   const usage = await checkUsage(session.user.id);
   const totalWritings = await prisma.writing.count({
+    where: { userId: session.user.id },
+  });
+  const totalCorrections = await prisma.correction.count({
     where: { userId: session.user.id },
   });
 
@@ -47,6 +50,24 @@ export default async function DashboardPage() {
         totalAll={totalWritings}
         isPro={usage.isPro}
       />
+
+      {/* 语法病历入口 */}
+      <Link href="/grammar-patterns" className="block mt-6">
+        <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground font-normal flex items-center gap-2">
+              <Stethoscope className="h-4 w-4" />
+              语法病历本
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{totalCorrections}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              已批改 {totalCorrections} 篇作文，查看你的语法薄弱点分析
+            </p>
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* 升级引导 */}
       {!usage.isPro && (

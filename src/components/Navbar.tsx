@@ -52,6 +52,12 @@ export function Navbar() {
                 >
                   笔记本
                 </Link>
+                <Link
+                  href="/grammar-patterns"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  语法病历
+                </Link>
               </>
             ) : (
               <Link
@@ -116,6 +122,9 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => router.push("/notebook")}>
                   笔记本
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/grammar-patterns")}>
+                  语法病历
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/dashboard")}>
                   仪表盘
                 </DropdownMenuItem>
@@ -174,6 +183,9 @@ export function Navbar() {
               </Link>
               <Link href="/notebook" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 笔记本
+              </Link>
+              <Link href="/grammar-patterns" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+                语法病历
               </Link>
               <Link href="/dashboard" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 仪表盘
