@@ -45,11 +45,23 @@ const levelVariant: Record<string, "secondary" | "default" | "destructive"> = {
 function TrendIcon({ trend }: { trend: GrammarPattern["trend"] }) {
   switch (trend) {
     case "up":
-      return <TrendingUp className="h-4 w-4 text-red-500" title="出现频率上升（恶化中）" />;
+      return (
+        <span title="出现频率上升（恶化中）">
+          <TrendingUp className="h-4 w-4 text-red-500" />
+        </span>
+      );
     case "down":
-      return <TrendingDown className="h-4 w-4 text-green-500" title="出现频率下降（改善中）" />;
+      return (
+        <span title="出现频率下降（改善中）">
+          <TrendingDown className="h-4 w-4 text-green-500" />
+        </span>
+      );
     default:
-      return <Minus className="h-4 w-4 text-muted-foreground" title="趋势平稳" />;
+      return (
+        <span title="趋势平稳">
+          <Minus className="h-4 w-4 text-muted-foreground" />
+        </span>
+      );
   }
 }
 
