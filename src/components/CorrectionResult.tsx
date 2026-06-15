@@ -19,11 +19,30 @@ import {
   FileCheck,
   MessageSquareText,
 } from "lucide-react";
-import type { CorrectionResult as CorrectionResultType } from "@/types";
+import type { CorrectionResult as CorrectionResultType, ExamType } from "@/types";
 
 interface Props {
   result: CorrectionResultType;
   remaining: number;
+}
+
+function getScoreDimensions(examType?: ExamType, maxScore?: number) {
+  if (examType === "literary") {
+    return {
+      labels: ["情节构建", "语言风格", "人物场景", "主题统一"],
+      maxes: [30, 30, 20, 20],
+    };
+  }
+  const m = maxScore || 100;
+  return {
+    labels: ["内容", "结构", "语法", "词汇"],
+    maxes: [
+      m > 25 ? 30 : m > 9 ? 7 : 4,
+      m > 25 ? 25 : m > 9 ? 6 : 4,
+      m > 25 ? 25 : m > 9 ? 6 : 4,
+      m > 25 ? 20 : m > 9 ? 6 : 3,
+    ],
+  };
 }
 
 const levelVariant = {
@@ -72,22 +91,17 @@ export function CorrectionResult({ result, remaining }: Props) {
             </p>
           </div>
           <div className="space-y-2 max-w-sm mx-auto">
-            <ScoreBar label="内容" score={result.scores.content} max={result.maxScore > 25 ? 30 : result.maxScore > 9 ? 7 : 4} />
-            <ScoreBar
-              label="结构"
-              score={result.scores.structure}
-              max={result.maxScore > 25 ? 25 : result.maxScore > 9 ? 6 : 4}
-            />
-            <ScoreBar
-              label="语法"
-              score={result.scores.grammar}
-              max={result.maxScore > 25 ? 25 : result.maxScore > 9 ? 6 : 4}
-            />
-            <ScoreBar
-              label="词汇"
-              score={result.scores.vocabulary}
-              max={result.maxScore > 25 ? 20 : result.maxScore > 9 ? 6 : 3}
-            />
+            {(() => {
+              const dims = getScoreDimensions(result.examType, result.maxScore);
+              return (
+                <>
+                  <ScoreBar label={dims.labels[0]} score={result.scores.content} max={dims.maxes[0]} />
+                  <ScoreBar label={dims.labels[1]} score={result.scores.structure} max={dims.maxes[1]} />
+                  <ScoreBar label={dims.labels[2]} score={result.scores.grammar} max={dims.maxes[2]} />
+                  <ScoreBar label={dims.labels[3]} score={result.scores.vocabulary} max={dims.maxes[3]} />
+                </>
+              );
+            })()}
           </div>
         </div>
 

@@ -58,6 +58,12 @@ export function Navbar() {
                 >
                   语法病历
                 </Link>
+                <Link
+                  href="/report"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  学习报告
+                </Link>
               </>
             ) : (
               <Link
@@ -125,6 +131,9 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => router.push("/grammar-patterns")}>
                   语法病历
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/report")}>
+                  学习报告
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/dashboard")}>
                   仪表盘
                 </DropdownMenuItem>
@@ -186,6 +195,9 @@ export function Navbar() {
               </Link>
               <Link href="/grammar-patterns" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 语法病历
+              </Link>
+              <Link href="/report" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+                学习报告
               </Link>
               <Link href="/dashboard" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 仪表盘

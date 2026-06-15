@@ -22,6 +22,7 @@ const examLabels: Record<ExamType, string> = {
   cet4: "四级",
   cet6: "六级",
   ielts: "雅思/托福",
+  literary: "文学批评",
 };
 
 const levelVariant = {

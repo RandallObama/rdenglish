@@ -1,7 +1,11 @@
 import { auth } from "@/lib/auth";
 import { cowriteContinue, streamCowriteContinue } from "@/lib/deepseek";
+import { consumeUsage } from "@/lib/rate-limit";
 import { createSSEResponse } from "@/lib/stream";
 import type { WritingStyle } from "@/types";
+
+// Vercel Hobby 最大 60s，Pro 可达 300s
+export const maxDuration = 180;
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -10,6 +14,15 @@ export async function POST(request: Request) {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  const userId = session.user.id;
+  const usage = await consumeUsage(userId);
+  if (!usage.allowed) {
+    return new Response(
+      JSON.stringify({ error: "今日免费次数已用完" }),
+      { status: 429, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   try {

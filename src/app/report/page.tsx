@@ -2,10 +2,10 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { GrammarPatternsView } from "@/components/GrammarPatternsView";
+import ReportView from "@/components/ReportView";
 import { Loader2 } from "lucide-react";
 
-export default function GrammarPatternsPage() {
+export default function ReportPage() {
   const { status } = useSession();
 
   if (status === "loading") {
@@ -20,5 +20,5 @@ export default function GrammarPatternsPage() {
     redirect("/login");
   }
 
-  return <GrammarPatternsView />;
+  return <ReportView />;
 }

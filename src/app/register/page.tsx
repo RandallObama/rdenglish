@@ -23,6 +23,14 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
+    // 客户端邮箱格式预检（比 type="email" 更可靠）
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(email)) {
+      setError("请输入有效的邮箱地址，例如 name@example.com");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/register", {
         method: "POST",

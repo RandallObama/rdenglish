@@ -46,7 +46,7 @@ interface TranslationResult {
   vocabNotes: VocabNote[];
 }
 
-type ExamType = "middle" | "high" | "cet4" | "cet6" | "ielts" | "general";
+type ExamType = "middle" | "high" | "cet4" | "cet6" | "ielts" | "general" | "literary";
 type WritingStyle = "academic" | "business" | "daily";
 
 const examConfig: Record<
@@ -82,6 +82,11 @@ const examConfig: Record<
     name: "通用",
     focus: "覆盖基础到高级的各类语法点，侧重实用性和地道表达。",
     vocabularyLevel: "通用核心词汇",
+  },
+  literary: {
+    name: "文学批评",
+    focus: "文学写作注重语言的艺术性和表现力，重点关注：修辞手法（隐喻、象征、反讽）、文学性词汇与意象营造、句式多样性与节奏感、叙事声音的一致性、展示而非讲述的写作原则。",
+    vocabularyLevel: "文学写作核心词汇",
   },
 };
 
@@ -140,13 +145,14 @@ ${exam.focus}
 }
 
 function parseAIJson(content: string): string {
-  let jsonStr = content.trim();
-  if (jsonStr.startsWith("```")) {
-    jsonStr = jsonStr
-      .replace(/```json?\s*\n?/g, "")
-      .replace(/```\s*\n?/g, "");
+  let s = content.trim();
+  s = s.replace(/```json?\s*/gi, "").replace(/```\s*/g, "");
+  const start = s.indexOf("{");
+  const end = s.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    s = s.slice(start, end + 1);
   }
-  return jsonStr;
+  return s;
 }
 
 // ── 非流式版本 ──
@@ -166,7 +172,7 @@ export async function translateAndAnalyze(
       { role: "user", content: chineseText },
     ],
     temperature: 0.8,
-    max_tokens: 8192,
+    max_tokens: 4096,
   });
 
   const content = response.choices[0]?.message?.content || "";
@@ -174,9 +180,10 @@ export async function translateAndAnalyze(
 
   try {
     return JSON.parse(jsonStr) as TranslationResult;
-  } catch {
+  } catch (e) {
+    console.error("translateAndAnalyze JSON parse error:", e, "\nRaw:", content);
     return {
-      english: content,
+      english: "翻译失败，请稍后重试",
       grammarNotes: [],
       vocabNotes: [],
     };
@@ -201,7 +208,7 @@ export async function* streamTranslateAndAnalyze(
       { role: "user", content: chineseText },
     ],
     temperature: 0.8,
-    max_tokens: 8192,
+    max_tokens: 4096,
     stream: true,
   });
 
@@ -218,9 +225,10 @@ export async function* streamTranslateAndAnalyze(
   const jsonStr = parseAIJson(fullContent);
   try {
     return JSON.parse(jsonStr) as TranslationResult;
-  } catch {
+  } catch (e) {
+    console.error("streamTranslateAndAnalyze JSON parse error:", e, "\nRaw:", fullContent);
     return {
-      english: jsonStr,
+      english: "翻译失败，请稍后重试",
       grammarNotes: [],
       vocabNotes: [],
     };

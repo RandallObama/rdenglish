@@ -61,10 +61,18 @@ export interface ImprovementSuggestion {
   reason: string;      // 提出该建议的原因
 }
 
+export interface ScoringRationale {
+  content: string;
+  structure: string;
+  grammar: string;
+  vocabulary: string;
+}
+
 export interface CorrectionResult {
   totalScore: number;
   maxScore: number;
   scores: ScoreBreakdown;
+  scoringRationale?: ScoringRationale;
   sentenceCorrections: SentenceCorrection[];
   grammarIssues: GrammarNote[];
   vocabSuggestions: VocabNote[];
@@ -172,5 +180,65 @@ export interface GrammarExercise {
 
 export interface GrammarExerciseResponse {
   exercises: GrammarExercise[];
+  remaining: number;
+}
+
+// ========== 学习报告 ==========
+export type ReportPeriodType = "week" | "month" | "custom";
+
+export interface ReportPeriod {
+  type: ReportPeriodType;
+  startDate: string; // ISO
+  endDate: string;   // ISO
+}
+
+export interface DailyCount {
+  date: string;
+  count: number;
+}
+
+export interface ScorePoint {
+  date: string;
+  score: number;
+}
+
+export interface DailyVocabCount {
+  date: string;
+  words: number;
+  grammar: number;
+}
+
+export interface TranslationStats {
+  total: number;
+  byStyle: Record<string, number>;
+  dailyCounts: DailyCount[];
+}
+
+export interface CorrectionStats {
+  total: number;
+  averageScore: number;
+  maxScore: number;
+  scoreTrend: ScorePoint[];
+  byExamType: Record<string, number>;
+}
+
+export interface VocabGrowthStats {
+  newWords: number;
+  newGrammar: number;
+  dailyAdded: DailyVocabCount[];
+}
+
+export interface ReportData {
+  period: ReportPeriod;
+  translationStats: TranslationStats;
+  correctionStats: CorrectionStats;
+  grammarPatterns: GrammarPattern[];
+  totalGrammarIssues: number;
+  vocabGrowth: VocabGrowthStats;
+  generatedAt: string;
+}
+
+export interface ReportInsightsResponse {
+  insights: string;
   remaining: number;
 }

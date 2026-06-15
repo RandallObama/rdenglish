@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { createSSEResponse } from "@/lib/stream";
 import type { ExamType } from "@/types";
 
+// 批改需要较长的 AI 生成时间（需 Pro 计划支持 >60s）
+export const maxDuration = 180;
+
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -29,12 +32,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "请输入作文内容" }, { status: 400 });
     }
 
-    if (essay.length > 5000) {
-      return NextResponse.json({ error: "作文过长，请限制在5000字以内" }, { status: 400 });
+    const wordCount = essay.trim().split(/\s+/).length;
+    if (wordCount > 2000) {
+      return NextResponse.json({ error: "作文过长，请限制在2000词以内" }, { status: 400 });
     }
 
     const validExamTypes: ExamType[] = [
-      "middle", "high", "cet4", "cet6", "ielts", "general",
+      "middle", "high", "cet4", "cet6", "ielts", "general", "literary",
     ];
     const safeExamType = validExamTypes.includes(examType as ExamType)
       ? (examType as ExamType)

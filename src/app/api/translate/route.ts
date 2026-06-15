@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { createSSEResponse } from "@/lib/stream";
 import type { ExamType, WritingStyle } from "@/types";
 
+// Vercel Hobby 最大 60s，Pro 可达 300s
+export const maxDuration = 180;
+
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
 
     const validStyles: WritingStyle[] = ["academic", "business", "daily"];
     const validExamTypes: ExamType[] = [
-      "middle", "high", "cet4", "cet6", "ielts", "general",
+      "middle", "high", "cet4", "cet6", "ielts", "general", "literary",
     ];
 
     const safeStyle = validStyles.includes(style as WritingStyle)

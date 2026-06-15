@@ -29,6 +29,7 @@ const examLabels: Record<ExamType, string> = {
   cet4: "四级",
   cet6: "六级",
   ielts: "雅思/托福",
+  literary: "文学批评",
 };
 
 export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
@@ -66,6 +67,7 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
       }
 
       let firstChunk = false;
+      let gotResult = false;
       for await (const event of readSSE(res)) {
         if (event.type === "chunk") {
           if (!firstChunk) {
@@ -74,12 +76,16 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
           }
           setStreamingText((prev) => prev + event.content);
         } else if (event.type === "done") {
+          gotResult = true;
           onResult(event.result as Parameters<typeof onResult>[0]);
           setStreamingText("");
           setStreaming(false);
         } else if (event.type === "error") {
           onError(event.message);
         }
+      }
+      if (!gotResult) {
+        onError("AI 响应超时，请尝试提交更短的作文或稍后重试");
       }
     } catch {
       onError("网络错误，请稍后重试");
@@ -105,11 +111,12 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
               <SelectItem value="cet4">四级</SelectItem>
               <SelectItem value="cet6">六级</SelectItem>
               <SelectItem value="ielts">雅思/托福</SelectItem>
+              <SelectItem value="literary">文学批评</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <Badge variant="outline" className="text-xs h-8">
-          {essay.length}/5000 字
+          {essay.trim() ? essay.trim().split(/\s+/).length : 0}/2000 词
         </Badge>
       </div>
 
@@ -118,7 +125,6 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
         value={essay}
         onChange={(e) => setEssay(e.target.value)}
         className="min-h-[220px] sm:min-h-[250px] text-base resize-y"
-        maxLength={5000}
       />
 
       {/* 流式输出 — 使用 LoadingProgress 替代原始 JSON 流 */}

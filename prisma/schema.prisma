@@ -34,6 +34,8 @@ model Writing {
   grammarNotes String?
   vocabNotes   String?
   createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Correction {
@@ -51,6 +53,8 @@ model Correction {
   improvementSuggestions String? // JSON: ImprovementSuggestion[]
   overallComment   String
   createdAt        DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model SavedWord {
@@ -68,6 +72,19 @@ model SavedWord {
   examFocus    String?
   source       String   @default("translate")
   createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model LoginAttempt {
+  id             String   @id @default(cuid())
+  email          String
+  count          Int      @default(1)
+  firstAttemptAt DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([email])
+  @@index([firstAttemptAt])
 }
 
 model SavedGrammar {
@@ -84,4 +101,6 @@ model SavedGrammar {
   examTip        String?
   source         String   @default("translate")
   createdAt      DateTime @default(now())
+
+  @@index([userId])
 }

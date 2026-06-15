@@ -37,6 +37,7 @@ const examLabels: Record<ExamType, string> = {
   cet4: "四级",
   cet6: "六级",
   ielts: "雅思/托福",
+  literary: "文学批评",
 };
 
 export function Writer({ onResult, onError }: WriterProps) {
@@ -74,12 +75,19 @@ export function Writer({ onResult, onError }: WriterProps) {
     setStreamingText("");
     setStreaming(false);
 
+    // 客户端超时保护：Vercel Hobby 限制 10s，这里设置 25s 作为安全上限
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 25000);
+
     try {
       const res = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: text.trim(), style, examType, stream: true }),
+        signal: abortController.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (res.status === 401) {
         router.push("/login");
@@ -89,7 +97,6 @@ export function Writer({ onResult, onError }: WriterProps) {
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "翻译失败" }));
         onError(data.error || "翻译失败");
-        setLoading(false);
         return;
       }
 
@@ -110,9 +117,14 @@ export function Writer({ onResult, onError }: WriterProps) {
           onError(event.message);
         }
       }
-    } catch {
-      onError("网络错误，请稍后重试");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        onError("请求超时，请尝试缩短文本或稍后重试");
+      } else {
+        onError("网络错误，请稍后重试");
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
       setStreaming(false);
     }
@@ -124,12 +136,19 @@ export function Writer({ onResult, onError }: WriterProps) {
 
     setCowriteLoading(true);
     setShowSuggestions(false);
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 20000);
+
     try {
       const res = await fetch("/api/cowrite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: text.trim(), style, stream: false }),
+        signal: abortController.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (res.status === 401) {
         router.push("/login");
@@ -149,9 +168,14 @@ export function Writer({ onResult, onError }: WriterProps) {
       } else {
         toast.error("未能生成续写建议，请调整上文内容后重试");
       }
-    } catch {
-      toast.error("网络错误，请稍后重试");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        toast.error("请求超时，请稍后重试");
+      } else {
+        toast.error("网络错误，请稍后重试");
+      }
     } finally {
+      clearTimeout(timeoutId);
       setCowriteLoading(false);
     }
   };
@@ -197,6 +221,7 @@ export function Writer({ onResult, onError }: WriterProps) {
               <SelectItem value="cet4">四级</SelectItem>
               <SelectItem value="cet6">六级</SelectItem>
               <SelectItem value="ielts">雅思/托福</SelectItem>
+              <SelectItem value="literary">文学批评</SelectItem>
             </SelectContent>
           </Select>
         </div>
