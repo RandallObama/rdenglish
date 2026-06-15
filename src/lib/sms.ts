@@ -1,34 +1,18 @@
 /**
- * 阿里云短信服务客户端
+ * Spug 推送平台短信服务
  *
  * 开发环境 (NODE_ENV !== "production")：验证码打印到控制台，不真实发送
- * 生产环境：通过阿里云 SMS SDK 发送验证码短信
+ * 生产环境：通过 Spug HTTP API 发送验证码短信
+ *
+ * Spug 控制台: https://push.spug.cc
+ * 接入方式：微信扫码 → 创建验证码模板 → 拿到模板 ID → 配置环境变量
  */
 
-import Dysmsapi20170525, * as $Dysmsapi20170525 from "@alicloud/dysmsapi20170525";
-import * as $OpenApi from "@alicloud/openapi-client";
-
-/** 阿里云 SMS 客户端单例 */
-let client: Dysmsapi20170525 | null = null;
-
-function getClient(): Dysmsapi20170525 {
-  if (client) return client;
-
-  const accessKeyId = process.env.ALIBABA_ACCESS_KEY_ID;
-  const accessKeySecret = process.env.ALIBABA_ACCESS_KEY_SECRET;
-
-  if (!accessKeyId || !accessKeySecret) {
-    throw new Error("Missing ALIBABA_ACCESS_KEY_ID or ALIBABA_ACCESS_KEY_SECRET");
-  }
-
-  const config = new $OpenApi.Config({
-    accessKeyId,
-    accessKeySecret,
-  });
-  config.endpoint = "dysmsapi.aliyuncs.com";
-
-  client = new Dysmsapi20170525(config);
-  return client;
+/** Spug API 响应结构 */
+interface SpugResponse {
+  code: number;
+  message: string;
+  data?: { id: string };
 }
 
 /**
@@ -38,36 +22,44 @@ function getClient(): Dysmsapi20170525 {
  * @returns 是否发送成功
  */
 export async function sendSmsCode(phone: string, code: string): Promise<boolean> {
-  // 开发环境：打印到控制台
+  const templateId = process.env.SPUG_SMS_TEMPLATE_ID;
+
+  if (!templateId) {
+    console.error("Missing SPUG_SMS_TEMPLATE_ID");
+    return false;
+  }
+
+  // 开发环境：打印到控制台，不消耗短信额度
   if (process.env.NODE_ENV !== "production") {
     console.log(`[DEV SMS] To: ${phone}, Code: ${code}`);
     return true;
   }
 
-  const signName = process.env.ALIBABA_SMS_SIGN_NAME;
-  const templateCode = process.env.ALIBABA_SMS_TEMPLATE_CODE;
-
-  if (!signName || !templateCode) {
-    console.error("Missing ALIBABA_SMS_SIGN_NAME or ALIBABA_SMS_TEMPLATE_CODE");
-    return false;
-  }
-
   try {
-    const smsClient = getClient();
-    const request = new $Dysmsapi20170525.SendSmsRequest({
-      phoneNumbers: phone,
-      signName,
-      templateCode,
-      templateParam: JSON.stringify({ code }),
+    const url = `https://push.spug.cc/send/${templateId}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "rdenglish",
+        code,
+        targets: phone,
+      }),
     });
 
-    const response = await smsClient.sendSms(request);
+    if (!response.ok) {
+      console.error("SMS send failed: HTTP", response.status);
+      return false;
+    }
 
-    if (response.body?.code === "OK") {
+    const result: SpugResponse = await response.json();
+
+    if (result.code === 0) {
       return true;
     }
 
-    console.error("SMS send failed:", response.body?.message);
+    console.error("SMS send failed:", result.message);
     return false;
   } catch (error) {
     console.error("SMS send error:", error);
