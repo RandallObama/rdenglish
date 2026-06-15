@@ -74,17 +74,20 @@ const providers: Provider[] = [
         return null;
       }
 
-      const email = credentials.email as string;
+      const identifier = credentials.email as string;
       const password = credentials.password as string;
 
-      // 登录速率限制检查
-      if (!(await checkLoginRateLimit(email))) {
+      // 登录速率限制检查（按 identifier 存储，兼容邮箱和手机号）
+      if (!(await checkLoginRateLimit(identifier))) {
         throw new Error("登录尝试过于频繁，请 60 秒后再试");
       }
 
-      const user = await prisma.user.findUnique({
-        where: { email },
-      });
+      // 自动识别手机号 / 邮箱
+      const isPhone = /^1[3-9]\d{9}$/.test(identifier);
+
+      const user = isPhone
+        ? await prisma.user.findUnique({ where: { phone: identifier } })
+        : await prisma.user.findUnique({ where: { email: identifier } });
 
       if (!user) {
         return null;
@@ -95,12 +98,12 @@ const providers: Provider[] = [
         return null;
       }
 
-      // 登录成功，清除该邮箱的限速记录
-      await clearLoginRateLimit(email);
+      // 登录成功，清除限速记录
+      await clearLoginRateLimit(identifier);
 
       return {
         id: user.id,
-        email: user.email,
+        email: user.email || user.phone || "",
         name: user.name || "",
       };
     },

@@ -9,7 +9,8 @@ datasource db {
 
 model User {
   id            String          @id @default(cuid())
-  email         String          @unique
+  email         String?         @unique
+  phone         String?         @unique
   passwordHash  String
   name          String?
   plan          String          @default("free")
@@ -21,6 +22,29 @@ model User {
   corrections   Correction[]
   savedWords    SavedWord[]
   savedGrammars SavedGrammar[]
+}
+
+model SmsCode {
+  id        String    @id @default(cuid())
+  phone     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([phone])
+  @@index([createdAt])
+}
+
+model SmsRateLimit {
+  id            String   @id @default(cuid())
+  phone         String
+  count         Int      @default(1)
+  windowStartAt DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([phone, windowStartAt])
 }
 
 model Writing {
