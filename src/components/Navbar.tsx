@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sun, Moon, Laptop, PenLine, Menu, X, Users, BookOpen } from "lucide-react";
+import { Sun, Moon, Laptop, PenLine, Menu, X, Users, BookOpen, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export function Navbar() {
@@ -59,6 +59,13 @@ export function Navbar() {
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   批改
+                </Link>
+                <Link
+                  href="/optimize"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  优化
                 </Link>
                 <Link
                   href="/notebook"
@@ -156,6 +163,10 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => router.push("/correct")}>
                   文章批改
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/optimize")}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  写作优化
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/notebook")}>
                   笔记本
                 </DropdownMenuItem>
@@ -186,6 +197,10 @@ export function Navbar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/history/corrections")}>
                   批改记录
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/history/optimizations")}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  优化记录
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -234,6 +249,10 @@ export function Navbar() {
               <Link href="/correct" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 批改
               </Link>
+              <Link href="/optimize" className="block py-2.5 text-sm flex items-center gap-1" onClick={() => setMenuOpen(false)}>
+                <Sparkles className="h-3.5 w-3.5" />
+                优化
+              </Link>
               <Link href="/notebook" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 笔记本
               </Link>
@@ -262,6 +281,10 @@ export function Navbar() {
               </Link>
               <Link href="/history/corrections" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 批改记录
+              </Link>
+              <Link href="/history/optimizations" className="block py-2.5 text-sm flex items-center gap-1" onClick={() => setMenuOpen(false)}>
+                <Sparkles className="h-3.5 w-3.5" />
+                优化记录
               </Link>
               <button
                 className="block py-2.5 text-sm text-red-600 dark:text-red-400"

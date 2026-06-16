@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { cowriteContinue, streamCowriteContinue } from "@/lib/deepseek";
+import { cowriteContinue, streamCowriteContinue, cowriteContinueEn, streamCowriteContinueEn } from "@/lib/deepseek";
 import { consumeUsage } from "@/lib/rate-limit";
 import { createSSEResponse } from "@/lib/stream";
 import type { WritingStyle } from "@/types";
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { text, style = "daily", stream = true } = body;
+    const { text, style = "daily", lang = "zh", stream = true } = body;
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(
@@ -48,7 +48,40 @@ export async function POST(request: Request) {
       ? (style as WritingStyle)
       : "daily";
 
-    // ── 流式路径 ──
+    // ── 英文续写 ──
+    if (lang === "en") {
+      if (stream) {
+        return createSSEResponse(async (send) => {
+          const iter = streamCowriteContinueEn(text.trim(), safeStyle);
+          let result: Awaited<ReturnType<typeof cowriteContinueEn>> | null = null;
+
+          const gen = iter[Symbol.asyncIterator]();
+          while (true) {
+            const { value, done } = await gen.next();
+            if (done) {
+              result = value as Awaited<ReturnType<typeof cowriteContinueEn>>;
+              break;
+            }
+            send({ type: "chunk", content: value as string });
+          }
+
+          if (!result) {
+            send({ type: "error", message: "AI 返回为空" });
+            return;
+          }
+
+          send({ type: "done", result });
+        });
+      }
+
+      const result = await cowriteContinueEn(text.trim(), safeStyle);
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // ── 中文续写（原有逻辑） ──
     if (stream) {
       return createSSEResponse(async (send) => {
         const iter = streamCowriteContinue(text.trim(), safeStyle);
@@ -73,7 +106,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // ── 非流式兼容路径 ──
     const result = await cowriteContinue(text.trim(), safeStyle);
     return new Response(JSON.stringify(result), {
       status: 200,

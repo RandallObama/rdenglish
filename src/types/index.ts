@@ -146,7 +146,49 @@ export interface UsageInfo {
 }
 
 export type WritingStyle = "academic" | "business" | "daily";
+export type OptimizeStyle = WritingStyle | "creative" | "persuasive";
 export type ExamType = "middle" | "high" | "cet4" | "cet6" | "ielts" | "general" | "literary";
+export type OptimizeIntensity = "light" | "medium" | "deep";
+export type OptimizeMode = "full" | "fragment";
+
+// ========== 写作优化 ==========
+
+export interface ImprovementItem {
+  category: "grammar" | "vocabulary" | "logic" | "structure" | "content";
+  original: string;
+  optimized: string;
+  reason: string;
+}
+
+export interface TransitionAnalysis {
+  beforeCoherence: string;
+  afterCoherence: string;
+}
+
+export interface OptimizeResult {
+  optimizedText: string;
+  improvements: ImprovementItem[];
+  grammarNotes: GrammarNote[];
+  vocabNotes: VocabNote[];
+  highlights: string;
+  transitionAnalysis?: TransitionAnalysis;
+}
+
+export interface OptimizationRecord {
+  id: string;
+  originalText: string;
+  optimizedText: string;
+  style: string;
+  examType: string;
+  intensity: string;
+  mode: string;
+  improvements: ImprovementItem[];
+  grammarNotes: GrammarNote[];
+  vocabNotes: VocabNote[];
+  highlights: string;
+  transitionAnalysis?: TransitionAnalysis;
+  createdAt: string;
+}
 
 // ========== 语法病历本 ==========
 export interface GrammarPattern {

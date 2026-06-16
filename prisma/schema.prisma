@@ -20,6 +20,7 @@ model User {
   updatedAt     DateTime        @updatedAt
   writings          Writing[]
   corrections       Correction[]
+  optimizations     Optimization[]
   savedWords        SavedWord[]
   savedGrammars     SavedGrammar[]
   sentRequests      Friendship[]    @relation("SentRequests")
@@ -188,6 +189,28 @@ model WordbookMember {
   joinedAt   DateTime @default(now())
 
   @@unique([wordbookId, userId])
+}
+
+model Optimization {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  originalText    String
+  optimizedText   String
+  style           String   @default("daily")
+  examType        String   @default("general")
+  intensity       String   @default("medium")
+  mode            String   @default("full")
+  improvements    String   // JSON: ImprovementItem[]
+  grammarNotes    String?  // JSON: GrammarNote[]
+  vocabNotes      String?  // JSON: VocabNote[]
+  highlights      String?
+  transitionAnalysis String? // JSON: TransitionAnalysis (fragment mode)
+  contextBefore   String?  // 片段模式上文
+  contextAfter    String?  // 片段模式下文
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model WordbookWord {

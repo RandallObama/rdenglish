@@ -108,9 +108,19 @@ export default function CorrectionHistoryPage() {
             查看你之前的作文批改记录
           </p>
         </div>
-        <Link href="/correct" className={buttonVariants({ size: "sm" })}>
-          新建批改
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/history" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <FileCheck className="h-4 w-4 mr-1" />
+            翻译记录
+          </Link>
+          <Link href="/history/optimizations" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <Sparkles className="h-4 w-4 mr-1" />
+            优化记录
+          </Link>
+          <Link href="/correct" className={buttonVariants({ size: "sm" })}>
+            新建批改
+          </Link>
+        </div>
       </div>
 
       {records.length === 0 ? (

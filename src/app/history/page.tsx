@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Trash2, BookOpen, Lightbulb, Clock, ChevronDown, ChevronRight, ChevronUp, Share2 } from "lucide-react";
+import { Loader2, Trash2, BookOpen, Lightbulb, Clock, ChevronDown, ChevronRight, ChevronUp, Share2, Sparkles, FileCheck } from "lucide-react";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { SaveButton } from "@/components/SaveButton";
 import { ShareDialog } from "@/components/ShareDialog";
@@ -98,9 +98,19 @@ export default function HistoryPage() {
             查看你之前的翻译记录
           </p>
         </div>
-        <Link href="/write" className={buttonVariants({ size: "sm" })}>
-          新建翻译
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/history/corrections" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <FileCheck className="h-4 w-4 mr-1" />
+            批改记录
+          </Link>
+          <Link href="/history/optimizations" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <Sparkles className="h-4 w-4 mr-1" />
+            优化记录
+          </Link>
+          <Link href="/write" className={buttonVariants({ size: "sm" })}>
+            新建翻译
+          </Link>
+        </div>
       </div>
 
       {records.length === 0 ? (

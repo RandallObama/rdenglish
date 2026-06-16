@@ -339,3 +339,119 @@ export async function* streamCowriteContinue(
     return { suggestions: lines.slice(0, 2) };
   }
 }
+
+// ── 英文伴写（非流式）──
+
+export async function cowriteContinueEn(
+  existingText: string,
+  style: string = "daily"
+): Promise<{ suggestions: string[] }> {
+  const styleGuide: Record<string, string> = {
+    daily: "自然的日常英语",
+    academic: "正式的学术英语",
+    business: "专业的商务英语",
+    creative: "富有表现力的创意英语",
+    persuasive: "有说服力的议论文英语",
+  };
+
+  const guide = styleGuide[style] || styleGuide.daily;
+
+  const systemPrompt = `You are a professional English writing coach. The user is writing an English passage. Based on the existing text, generate 2 different natural continuations (1-2 sentences each) in ${guide} style.
+
+Requirements:
+1. Analyze the topic, tone, sentence style, and logical direction of the existing text
+2. Generate 2 different continuation directions, each 1-2 sentences
+3. Continuations must be logically coherent, stylistically consistent, and naturally flowing
+4. Match the sentence length and complexity of the original
+
+Output format (JSON only, no markdown):
+{
+  "suggestions": ["Continuation A", "Continuation B"]
+}`;
+
+  const response = await client.chat.completions.create({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `Please generate continuations for:\n\n${existingText}` },
+    ],
+    temperature: 1.0,
+    max_tokens: 1024,
+  });
+
+  const content = response.choices[0]?.message?.content || "";
+  const jsonStr = parseAIJson(content);
+
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return {
+      suggestions: Array.isArray(parsed.suggestions)
+        ? parsed.suggestions.slice(0, 2)
+        : [],
+    };
+  } catch {
+    const lines = content
+      .split(/\n/)
+      .map((l: string) => l.replace(/^\d+[\.\、\s]+/, "").trim())
+      .filter((l: string) => l.length > 10);
+    return { suggestions: lines.slice(0, 2) };
+  }
+}
+
+// ── 英文伴写（流式）──
+
+export async function* streamCowriteContinueEn(
+  existingText: string,
+  style: string = "daily"
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any {
+  const styleGuide: Record<string, string> = {
+    daily: "自然的日常英语",
+    academic: "正式的学术英语",
+    business: "专业的商务英语",
+    creative: "富有表现力的创意英语",
+    persuasive: "有说服力的议论文英语",
+  };
+
+  const guide = styleGuide[style] || styleGuide.daily;
+
+  const systemPrompt = `You are a professional English writing coach. Based on the existing English text, generate 2 different continuations (1-2 sentences each) in ${guide} style.
+Output only JSON: {"suggestions": ["Direction A", "Direction B"]}`;
+
+  const stream = await client.chat.completions.create({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `Generate continuations for:\n${existingText}` },
+    ],
+    temperature: 1.0,
+    max_tokens: 1024,
+    stream: true,
+  });
+
+  let fullContent = "";
+  for await (const chunk of stream) {
+    const delta = (chunk as unknown as Record<string, unknown>).choices as Array<{ delta?: { content?: string } }> | undefined;
+    const content = delta?.[0]?.delta?.content;
+    if (content) {
+      fullContent += content;
+      yield content;
+    }
+  }
+
+  const jsonStr = parseAIJson(fullContent);
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return {
+      suggestions: Array.isArray(parsed.suggestions)
+        ? parsed.suggestions.slice(0, 2)
+        : [],
+    };
+  } catch {
+    const lines = fullContent
+      .split(/\n/)
+      .map((l: string) => l.replace(/^\d+[\.\、\s]+/, "").trim())
+      .filter((l: string) => l.length > 10);
+    return { suggestions: lines.slice(0, 2) };
+  }
+}
