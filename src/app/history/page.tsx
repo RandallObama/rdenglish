@@ -7,10 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Trash2, BookOpen, Lightbulb, Clock, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
+import { Loader2, Trash2, BookOpen, Lightbulb, Clock, ChevronDown, ChevronRight, ChevronUp, Share2 } from "lucide-react";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { SaveButton } from "@/components/SaveButton";
-import type { GrammarNote, VocabNote } from "@/types";
+import { ShareDialog } from "@/components/ShareDialog";
+import type { GrammarNote, VocabNote, SharedContentType } from "@/types";
 import { toast } from "sonner";
 import Link from "next/link";
 import type { WritingRecord } from "@/types";
@@ -32,6 +33,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
 
   const fetchHistory = useCallback(async (pageNum: number, append = false) => {
     const setLoadingState = append ? setLoadingMore : setLoading;
@@ -143,6 +145,17 @@ export default function HistoryPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShareTarget({ id: record.id, type: "writing" });
+                        }}
+                      >
+                        <Share2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -338,6 +351,13 @@ export default function HistoryPage() {
           )}
         </>
       )}
+
+      <ShareDialog
+        open={!!shareTarget}
+        onOpenChange={(open) => { if (!open) setShareTarget(null); }}
+        contentType={shareTarget?.type ?? "writing"}
+        contentId={shareTarget?.id ?? ""}
+      />
     </div>
   );
 }

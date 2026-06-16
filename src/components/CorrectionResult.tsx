@@ -18,12 +18,17 @@ import {
   XCircle,
   FileCheck,
   MessageSquareText,
+  Share2,
 } from "lucide-react";
-import type { CorrectionResult as CorrectionResultType, ExamType } from "@/types";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { ShareDialog } from "@/components/ShareDialog";
+import type { CorrectionResult as CorrectionResultType, ExamType, SharedContentType } from "@/types";
 
 interface Props {
   result: CorrectionResultType;
   remaining: number;
+  correctionId?: string;
 }
 
 function getScoreDimensions(examType?: ExamType, maxScore?: number) {
@@ -69,16 +74,24 @@ function ScoreBar({ label, score, max }: { label: string; score: number; max: nu
   );
 }
 
-export function CorrectionResult({ result, remaining }: Props) {
+export function CorrectionResult({ result, remaining, correctionId }: Props) {
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
   return (
     <Card className="mt-6">
       <CardContent className="p-4 md:p-6 space-y-6">
         {/* 分数总览 */}
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">批改结果</h3>
-          <Badge variant="outline" className="text-xs">
-            今日剩余 {remaining} 次
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              今日剩余 {remaining} 次
+            </Badge>
+            {correctionId && (
+              <Button variant="ghost" size="sm" onClick={() => setShareTarget({ id: correctionId, type: "correction" })}>
+                <Share2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="bg-muted/30 rounded-xl p-6">
@@ -347,6 +360,13 @@ export function CorrectionResult({ result, remaining }: Props) {
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      <ShareDialog
+        open={!!shareTarget}
+        onOpenChange={(open) => { if (!open) setShareTarget(null); }}
+        contentType={shareTarget?.type ?? "correction"}
+        contentId={shareTarget?.id ?? ""}
+      />
     </Card>
   );
 }

@@ -13,7 +13,7 @@ export default function CorrectPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [result, setResult] = useState<
-    (CorrectionResultType & { remaining: number }) | null
+    (CorrectionResultType & { id?: string; remaining: number }) | null
   >(null);
 
   // 未登录时跳转（必须在 useEffect 中，不能在 render 时调用 router.push）
@@ -24,7 +24,7 @@ export default function CorrectPage() {
   }, [status, router]);
 
   const handleResult = useCallback(
-    (data: CorrectionResultType & { remaining: number }) => {
+    (data: CorrectionResultType & { id?: string; remaining: number }) => {
       setResult(data);
       toast.success("批改完成！");
     },
@@ -64,7 +64,7 @@ export default function CorrectPage() {
       <EssayCorrector onResult={handleResult} onError={handleError} />
 
       {result && (
-        <CorrectionResult result={result} remaining={result.remaining} />
+        <CorrectionResult result={result} remaining={result.remaining} correctionId={result.id} />
       )}
     </div>
   );

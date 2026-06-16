@@ -18,10 +18,17 @@ model User {
   lastUsageDate String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
-  writings      Writing[]
-  corrections   Correction[]
-  savedWords    SavedWord[]
-  savedGrammars SavedGrammar[]
+  writings          Writing[]
+  corrections       Correction[]
+  savedWords        SavedWord[]
+  savedGrammars     SavedGrammar[]
+  sentRequests      Friendship[]    @relation("SentRequests")
+  receivedRequests  Friendship[]    @relation("ReceivedRequests")
+  sentShares         SharedContent[]   @relation("SentShares")
+  receivedShares     SharedContent[]   @relation("ReceivedShares")
+  createdWordbooks   Wordbook[]        @relation("CreatedWordbooks")
+  wordbookMemberships WordbookMember[]
+  addedWords         WordbookWord[]
 }
 
 model SmsCode {
@@ -127,4 +134,73 @@ model SavedGrammar {
   createdAt      DateTime @default(now())
 
   @@index([userId])
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  requester   User     @relation("SentRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  addresseeId String
+  addressee   User     @relation("ReceivedRequests", fields: [addresseeId], references: [id], onDelete: Cascade)
+  status      String   @default("pending") // "pending" | "accepted" | "blocked"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
+  @@index([status])
+}
+
+model SharedContent {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      User     @relation("SentShares", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId  String
+  receiver    User     @relation("ReceivedShares", fields: [receiverId], references: [id], onDelete: Cascade)
+  contentType String   // "writing" | "correction" | "savedWord" | "savedGrammar"
+  contentId   String   // 原始记录 ID
+  message     String?  // 发送者留言
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([receiverId, read])
+  @@index([senderId, createdAt])
+}
+
+model Wordbook {
+  id        String            @id @default(cuid())
+  name      String
+  creatorId String
+  creator   User              @relation("CreatedWordbooks", fields: [creatorId], references: [id], onDelete: Cascade)
+  members   WordbookMember[]
+  words     WordbookWord[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model WordbookMember {
+  id         String   @id @default(cuid())
+  wordbookId String
+  wordbook   Wordbook @relation(fields: [wordbookId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       String   @default("editor") // "owner" | "editor"
+  joinedAt   DateTime @default(now())
+
+  @@unique([wordbookId, userId])
+}
+
+model WordbookWord {
+  id         String   @id @default(cuid())
+  wordbookId String
+  wordbook   Wordbook @relation(fields: [wordbookId], references: [id], onDelete: Cascade)
+  word       String
+  chinese    String
+  level      String?
+  usage      String?
+  addedById  String
+  addedBy    User     @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([wordbookId])
 }

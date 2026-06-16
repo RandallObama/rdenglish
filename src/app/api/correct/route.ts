@@ -65,7 +65,7 @@ export async function POST(request: Request) {
           return;
         }
 
-        await prisma.correction.create({
+        const saved = await prisma.correction.create({
           data: {
             userId: userId,
             essayText: essay.trim(),
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
 
         send({
           type: "done",
-          result: { ...result, remaining: usage.remaining },
+          result: { ...result, id: saved.id, remaining: usage.remaining },
           remaining: usage.remaining,
         });
       });

@@ -76,6 +76,7 @@ export default function WritePage() {
 
       {result && (
         <ResultCard
+          resultId={result.id}
           english={result.english}
           grammarNotes={result.grammarNotes}
           vocabNotes={result.vocabNotes}

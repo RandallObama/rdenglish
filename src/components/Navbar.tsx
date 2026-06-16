@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,14 +15,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sun, Moon, Laptop, PenLine, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { Sun, Moon, Laptop, PenLine, Menu, X, Users, BookOpen } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export function Navbar() {
   const { data: session } = useSession();
   const { setTheme } = useTheme();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [friendBadge, setFriendBadge] = useState(0);
+
+  useEffect(() => {
+    if (!session) return;
+    fetch("/api/friends/stats")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.pendingRequests !== undefined) {
+          setFriendBadge(data.pendingRequests + data.unreadShares);
+        }
+      })
+      .catch(() => {});
+  }, [session]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -63,6 +77,23 @@ export function Navbar() {
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   学习报告
+                </Link>
+                <Link
+                  href="/friends"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                  好友
+                  {friendBadge > 0 && (
+                    <Badge variant="destructive" className="h-4 px-1 text-[10px] leading-none">
+                      {friendBadge}
+                    </Badge>
+                  )}
+                </Link>
+                <Link
+                  href="/wordbooks"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  单词本
                 </Link>
               </>
             ) : (
@@ -134,6 +165,19 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => router.push("/report")}>
                   学习报告
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/friends")}>
+                  <Users className="mr-2 h-4 w-4" />
+                  好友
+                  {friendBadge > 0 && (
+                    <Badge variant="destructive" className="ml-auto h-4 px-1 text-[10px] leading-none">
+                      {friendBadge}
+                    </Badge>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/wordbooks")}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  单词本
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/dashboard")}>
                   仪表盘
                 </DropdownMenuItem>
@@ -198,6 +242,17 @@ export function Navbar() {
               </Link>
               <Link href="/report" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 学习报告
+              </Link>
+              <Link href="/friends" className="block py-2.5 text-sm flex items-center gap-1" onClick={() => setMenuOpen(false)}>
+                好友
+                {friendBadge > 0 && (
+                  <Badge variant="destructive" className="h-4 px-1 text-[10px] leading-none">
+                    {friendBadge}
+                  </Badge>
+                )}
+              </Link>
+              <Link href="/wordbooks" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+                单词本
               </Link>
               <Link href="/dashboard" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
                 仪表盘

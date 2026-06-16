@@ -10,10 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { SaveButton } from "@/components/SaveButton";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Trash2, GraduationCap, FileCheck, Lightbulb, BookOpen, Sparkles, MessageSquareText, ChevronDown, ChevronUp, Link2, ArrowLeftRight, AlertTriangle, Target, ListChecks, XCircle } from "lucide-react";
+import { Loader2, Trash2, GraduationCap, FileCheck, Lightbulb, BookOpen, Sparkles, MessageSquareText, ChevronDown, ChevronUp, Link2, ArrowLeftRight, AlertTriangle, Target, ListChecks, XCircle, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import type { CorrectionRecord, ExamType } from "@/types";
+import { ShareDialog } from "@/components/ShareDialog";
+import type { CorrectionRecord, ExamType, SharedContentType } from "@/types";
 
 const examLabels: Record<ExamType, string> = {
   general: "通用",
@@ -42,6 +43,7 @@ export default function CorrectionHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
 
   const fetchHistory = useCallback(async (pageNum: number, append = false) => {
     const setLoadingState = append ? setLoadingMore : setLoading;
@@ -161,6 +163,17 @@ export default function CorrectionHistoryPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShareTarget({ id: record.id, type: "correction" });
+                        }}
+                      >
+                        <Share2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -456,6 +469,13 @@ export default function CorrectionHistoryPage() {
           )}
         </>
       )}
+
+      <ShareDialog
+        open={!!shareTarget}
+        onOpenChange={(open) => { if (!open) setShareTarget(null); }}
+        contentType={shareTarget?.type ?? "correction"}
+        contentId={shareTarget?.id ?? ""}
+      />
     </div>
   );
 }

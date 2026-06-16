@@ -21,8 +21,10 @@ import {
   Sparkles,
   XCircle,
   Printer,
+  Share2,
 } from "lucide-react";
-import type { SavedWordItem, SavedGrammarItem } from "@/types";
+import { ShareDialog } from "@/components/ShareDialog";
+import type { SavedWordItem, SavedGrammarItem, SharedContentType } from "@/types";
 
 const levelVariant = {
   "基础": "secondary" as const,
@@ -44,6 +46,7 @@ export function NotebookList({
   onDeleteGrammar,
 }: NotebookListProps) {
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
 
   if (words.length === 0 && grammars.length === 0) {
     return (
@@ -106,16 +109,28 @@ export function NotebookList({
                 </div>
               }
               action={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteWord(w.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShareTarget({ id: w.id, type: "savedWord" });
+                    }}
+                  >
+                    <Share2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteWord(w.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                  </Button>
+                </div>
               }
             >
               <div className="space-y-3">
@@ -200,16 +215,28 @@ export function NotebookList({
                 </div>
               }
               action={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteGrammar(g.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShareTarget({ id: g.id, type: "savedGrammar" });
+                    }}
+                  >
+                    <Share2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteGrammar(g.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                  </Button>
+                </div>
               }
             >
               <div className="space-y-3">
@@ -278,6 +305,13 @@ export function NotebookList({
           chinese: w.chinese,
           level: w.level || "基础",
         }))}
+      />
+
+      <ShareDialog
+        open={!!shareTarget}
+        onOpenChange={(open) => { if (!open) setShareTarget(null); }}
+        contentType={shareTarget?.type ?? "savedWord"}
+        contentId={shareTarget?.id ?? ""}
       />
     </>
   );

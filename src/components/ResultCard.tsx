@@ -19,12 +19,15 @@ import {
   ArrowLeftRight,
   Sparkles,
   XCircle,
+  Share2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { GrammarNote, VocabNote } from "@/types";
+import { ShareDialog } from "@/components/ShareDialog";
+import type { GrammarNote, VocabNote, SharedContentType } from "@/types";
 
 interface ResultCardProps {
+  resultId?: string;
   english: string;
   grammarNotes: GrammarNote[];
   vocabNotes: VocabNote[];
@@ -38,12 +41,14 @@ const levelVariant = {
 } as Record<string, "secondary" | "default" | "destructive">;
 
 export function ResultCard({
+  resultId,
   english,
   grammarNotes,
   vocabNotes,
   remaining,
 }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(english);
@@ -61,6 +66,11 @@ export function ResultCard({
             <Badge variant="outline" className="text-xs">
               今日剩余 {remaining} 次
             </Badge>
+            {resultId && (
+              <Button variant="ghost" size="sm" onClick={() => setShareTarget({ id: resultId, type: "writing" })}>
+                <Share2 className="h-4 w-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={handleCopy}>
               {copied ? (
                 <Check className="h-4 w-4 text-green-500" />
@@ -444,6 +454,13 @@ export function ResultCard({
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      <ShareDialog
+        open={!!shareTarget}
+        onOpenChange={(open) => { if (!open) setShareTarget(null); }}
+        contentType={shareTarget?.type ?? "writing"}
+        contentId={shareTarget?.id ?? ""}
+      />
     </Card>
   );
 }

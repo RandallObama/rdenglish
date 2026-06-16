@@ -242,3 +242,82 @@ export interface ReportInsightsResponse {
   insights: string;
   remaining: number;
 }
+
+// ========== 好友系统 ==========
+
+export interface UserSearchResult {
+  id: string;
+  name: string;
+}
+
+export interface FriendItem {
+  id: string;
+  friendId: string;
+  name: string | null;
+  addedAt: string;
+}
+
+export interface FriendRequestData {
+  id: string;
+  requesterId: string;
+  requesterName: string | null;
+  addresseeId: string;
+  addresseeName: string | null;
+  status: "pending" | "accepted" | "blocked";
+  createdAt: string;
+}
+
+export type SharedContentType = "writing" | "correction" | "savedWord" | "savedGrammar";
+
+export interface SharedContentItem {
+  id: string;
+  senderId: string;
+  senderName: string | null;
+  receiverId: string;
+  receiverName: string | null;
+  contentType: SharedContentType;
+  contentId: string;
+  message: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface FriendStats {
+  totalFriends: number;
+  pendingRequests: number;
+  unreadShares: number;
+}
+
+// ========== 共享单词本 ==========
+
+export interface WordbookItem {
+  id: string;
+  name: string;
+  creatorId: string;
+  creatorName: string | null;
+  memberCount: number;
+  wordCount: number;
+  isOwner: boolean;
+  createdAt: string;
+}
+
+export interface WordbookWordItem {
+  id: string;
+  word: string;
+  chinese: string;
+  level: string | null;
+  usage: string | null;
+  addedById: string;
+  addedByName: string | null;
+  createdAt: string;
+}
+
+export interface WordbookDetail extends WordbookItem {
+  words: WordbookWordItem[];
+  members: {
+    userId: string;
+    name: string | null;
+    role: string;
+    joinedAt: string;
+  }[];
+}
