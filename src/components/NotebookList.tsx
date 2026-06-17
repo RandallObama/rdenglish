@@ -136,7 +136,7 @@ export function NotebookList({
               <div className="space-y-3">
                 {w.collocations && w.collocations.length > 0 && (
                   <div className="flex gap-2">
-                    <Link2 className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                    <Link2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <div className="flex flex-wrap gap-1">
                       {w.collocations.map((c, j) => (
                         <Badge key={j} variant="secondary" className="text-xs font-mono">{c}</Badge>
@@ -156,14 +156,14 @@ export function NotebookList({
 
                 {w.usage && (
                   <div className="flex gap-2">
-                    <BookOpen className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                    <BookOpen className="h-4 w-4 text-[#5C5956] dark:text-[#C8E5DC] shrink-0 mt-0.5" />
                     <p className="text-sm text-muted-foreground">{w.usage}</p>
                   </div>
                 )}
 
                 {w.examples && w.examples.length > 0 && (
                   <div className="flex gap-2">
-                    <ListChecks className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+                    <ListChecks className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <div>
                       {w.examples.map((ex, j) => (
                         <p key={j} className="text-sm italic text-muted-foreground">• {ex}</p>
@@ -249,7 +249,7 @@ export function NotebookList({
 
                 {g.structure && (
                   <div className="flex gap-2">
-                    <Link2 className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                    <Link2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <p className="text-sm font-mono bg-muted/50 rounded px-2 py-1">{g.structure}</p>
                   </div>
                 )}

@@ -128,9 +128,9 @@ const STYLE_LABELS: Record<string, string> = {
 };
 
 const STYLE_COLORS: Record<string, string> = {
-  academic: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  business: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  daily: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  academic: "bg-primary/10 text-primary dark:bg-accent/20 dark:text-[#ABD1C6]",
+  business: "bg-accent/30 text-[#312F2C] dark:bg-accent/15 dark:text-[#ABD1C6]",
+  daily: "bg-primary/5 text-primary/70 dark:bg-accent/10 dark:text-[#ABD1C6]/70",
 };
 
 // ══════════════════════════════════════

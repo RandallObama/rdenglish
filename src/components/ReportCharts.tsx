@@ -24,13 +24,16 @@ function useChartColors() {
   const isDark = resolvedTheme === "dark";
 
   return {
-    grid: isDark ? "hsl(240 4% 25%)" : "hsl(240 6% 90%)",
-    text: isDark ? "hsl(240 5% 65%)" : "hsl(240 4% 46%)",
-    primary: "hsl(221 83% 53%)",        // blue-600
-    primaryLight: "hsl(221 83% 65%)",
-    success: "hsl(142 71% 45%)",        // green
-    warning: "hsl(38 92% 50%)",         // amber
-    danger: "hsl(0 84% 60%)",           // red
+    grid: isDark ? "#3A3A3A" : "#E5E5E5",
+    text: isDark ? "#999999" : "#777777",
+    // 品牌主色：深棕灰 #312F2C（浅色模式）/ 薄荷绿 #ABD1C6（深色模式）
+    primary: isDark ? "#ABD1C6" : "#312F2C",
+    primaryLight: isDark ? "#C8E5DC" : "#5C5956",
+    // 品牌强调色薄荷绿变体 → 用作"改善/成功"
+    success: isDark ? "#8BC4B5" : "#6A9E8E",
+    warning: isDark ? "#F5B800" : "#E5A000",
+    danger: isDark ? "#F07070" : "#E05555",
+    background: isDark ? "#1a1a1a" : "#ffffff",
   };
 }
 
@@ -137,7 +140,7 @@ export function ScoreTrendChart({ data }: { data: ScorePoint[] }) {
               stroke={colors.primary}
               strokeWidth={2.5}
               dot={{ r: 4, fill: colors.primary, strokeWidth: 0 }}
-              activeDot={{ r: 6, fill: colors.primaryLight, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+              activeDot={{ r: 6, fill: colors.primaryLight, strokeWidth: 2, stroke: colors.background }}
             />
           </LineChart>
         </ResponsiveContainer>

@@ -335,14 +335,14 @@ export default function CorrectionHistoryPage() {
                                 <div className="space-y-2 text-sm">
                                   {note.structure && (
                                     <div className="flex gap-1.5">
-                                      <Link2 className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
+                                      <Link2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                                       <p className="text-xs font-mono bg-muted/50 rounded px-2 py-0.5">{note.structure}</p>
                                     </div>
                                   )}
                                   <p className="text-xs text-muted-foreground">{note.explanation}</p>
                                   {note.examples?.length > 0 && (
                                     <div className="flex gap-1.5">
-                                      <ListChecks className="h-3.5 w-3.5 text-purple-500 shrink-0 mt-0.5" />
+                                      <ListChecks className="h-3.5 w-3.5 text-[#5C5956] dark:text-[#C8E5DC] shrink-0 mt-0.5" />
                                       <div className="space-y-0.5">
                                         {note.examples.map((ex: string, j: number) => (
                                           <p key={j} className="text-xs italic border-l-2 border-primary/20 pl-2 text-muted-foreground">{ex}</p>

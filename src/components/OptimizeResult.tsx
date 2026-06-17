@@ -47,10 +47,10 @@ const levelVariant = {
 } as Record<string, "secondary" | "default" | "destructive">;
 
 const categoryConfig: Record<ImprovementItem["category"], { label: string; color: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  grammar: { label: "语法", color: "text-blue-600 dark:text-blue-400", variant: "default" },
+  grammar: { label: "语法", color: "text-primary dark:text-[#ABD1C6]", variant: "default" },
   vocabulary: { label: "词汇", color: "text-green-600 dark:text-green-400", variant: "secondary" },
   logic: { label: "逻辑", color: "text-orange-600 dark:text-orange-400", variant: "outline" },
-  structure: { label: "结构", color: "text-purple-600 dark:text-purple-400", variant: "default" },
+  structure: { label: "结构", color: "text-[#5C5956] dark:text-[#C8E5DC]", variant: "default" },
   content: { label: "内容", color: "text-red-600 dark:text-red-400", variant: "destructive" },
 };
 
@@ -245,7 +245,7 @@ export function OptimizeResult({
                   <div className="space-y-4">
                     {/* 结构公式 */}
                     <div className="flex gap-2">
-                      <Link2 className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                      <Link2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <div>
                         <span className="text-xs font-medium text-muted-foreground">
                           结构公式
@@ -274,7 +274,7 @@ export function OptimizeResult({
                     {/* 例句 */}
                     {note.examples && note.examples.length > 0 && (
                       <div className="flex gap-2">
-                        <ListChecks className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                        <ListChecks className="h-4 w-4 text-[#5C5956] dark:text-[#C8E5DC] shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <span className="text-xs font-medium text-muted-foreground">
                             例句
@@ -399,7 +399,7 @@ export function OptimizeResult({
                   <div className="space-y-4">
                     {note.collocations && note.collocations.length > 0 && (
                       <div className="flex gap-2">
-                        <Link2 className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                        <Link2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <span className="text-xs font-medium text-muted-foreground">
                             常用搭配
@@ -443,7 +443,7 @@ export function OptimizeResult({
                     <Separator />
 
                     <div className="flex gap-2">
-                      <BookOpen className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                      <BookOpen className="h-4 w-4 text-[#5C5956] dark:text-[#C8E5DC] shrink-0 mt-0.5" />
                       <div>
                         <span className="text-xs font-medium text-muted-foreground">
                           用法说明
@@ -456,7 +456,7 @@ export function OptimizeResult({
 
                     {note.examples && note.examples.length > 0 && (
                       <div className="flex gap-2">
-                        <ListChecks className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+                        <ListChecks className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <span className="text-xs font-medium text-muted-foreground">
                             例句

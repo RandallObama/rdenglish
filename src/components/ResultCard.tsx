@@ -145,7 +145,7 @@ export function ResultCard({
                   <div className="space-y-4">
                     {/* 结构公式 */}
                     <div className="flex gap-2">
-                      <Link2 className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                      <Link2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <div>
                         <span className="text-xs font-medium text-muted-foreground">
                           结构公式
@@ -174,7 +174,7 @@ export function ResultCard({
                     {/* 例句 */}
                     {note.examples && note.examples.length > 0 && (
                       <div className="flex gap-2">
-                        <ListChecks className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                        <ListChecks className="h-4 w-4 text-[#5C5956] dark:text-[#C8E5DC] shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <span className="text-xs font-medium text-muted-foreground">
                             例句
@@ -311,7 +311,7 @@ export function ResultCard({
                     {/* 搭配 */}
                     {note.collocations && note.collocations.length > 0 && (
                       <div className="flex gap-2">
-                        <Link2 className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                        <Link2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <span className="text-xs font-medium text-muted-foreground">
                             常用搭配
@@ -357,7 +357,7 @@ export function ResultCard({
 
                     {/* 用法说明 */}
                     <div className="flex gap-2">
-                      <BookOpen className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                      <BookOpen className="h-4 w-4 text-[#5C5956] dark:text-[#C8E5DC] shrink-0 mt-0.5" />
                       <div>
                         <span className="text-xs font-medium text-muted-foreground">
                           用法说明
@@ -371,7 +371,7 @@ export function ResultCard({
                     {/* 例句 */}
                     {note.examples && note.examples.length > 0 && (
                       <div className="flex gap-2">
-                        <ListChecks className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+                        <ListChecks className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <span className="text-xs font-medium text-muted-foreground">
                             例句
