@@ -15,8 +15,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sun, Moon, Laptop, PenLine, Menu, X, Users, BookOpen, Sparkles } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Laptop,
+  Menu,
+  X,
+} from "lucide-react";
 import { useState, useEffect } from "react";
+
+/* 桌面端分组分隔线 */
+function NavDivider() {
+  return (
+    <span className="hidden md:block w-px h-5 bg-border shrink-0" aria-hidden />
+  );
+}
+
+/* 移动端分组标题 */
+function MobileSectionHeader({ label }: { label: string }) {
+  return (
+    <div className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider pt-1 pb-0.5">
+      {label}
+    </div>
+  );
+}
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -40,84 +62,108 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-            <PenLine className="h-6 w-6 text-primary" />
-            <span className="hidden sm:inline">英语写作助手</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-4">
-            {session ? (
-              <>
-                <Link
-                  href="/write"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  写作
-                </Link>
-                <Link
-                  href="/correct"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  批改
-                </Link>
-                <Link
-                  href="/optimize"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  优化
-                </Link>
-                <Link
-                  href="/notebook"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  笔记本
-                </Link>
-                <Link
-                  href="/grammar-patterns"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  语法病历
-                </Link>
-                <Link
-                  href="/report"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  学习报告
-                </Link>
-                <Link
-                  href="/friends"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                >
-                  好友
-                  {friendBadge > 0 && (
-                    <Badge variant="destructive" className="h-4 px-1 text-[10px] leading-none">
-                      {friendBadge}
-                    </Badge>
-                  )}
-                </Link>
-                <Link
-                  href="/wordbooks"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  单词本
-                </Link>
-              </>
-            ) : (
+        {/* ── 桌面导航 ── */}
+        <div className="flex items-center gap-4">
+          {session && (
+            <nav className="hidden md:flex items-center gap-3">
+              {/* 核心工具 */}
               <Link
-                href="/"
+                href="/write"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                首页
+                翻译
               </Link>
-            )}
-          </nav>
+              <Link
+                href="/optimize"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                优化
+              </Link>
+              <Link
+                href="/correct"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                批改
+              </Link>
+
+              <NavDivider />
+
+              {/* 学习工具 */}
+              <Link
+                href="/notebook"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                笔记本
+              </Link>
+              <Link
+                href="/grammar-patterns"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                语法病历
+              </Link>
+              <Link
+                href="/report"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                学习报告
+              </Link>
+              <Link
+                href="/wordbooks"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                单词本
+              </Link>
+
+              <NavDivider />
+
+              {/* 社交 + 记录 */}
+              <Link
+                href="/friends"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                好友
+                {friendBadge > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="h-4 px-1 text-[10px] leading-none"
+                  >
+                    {friendBadge}
+                  </Badge>
+                )}
+              </Link>
+
+              {/* 记录下拉 */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none outline-none">
+                  记录
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => router.push("/history")}>
+                    翻译记录
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/history/optimizations")}
+                  >
+                    优化记录
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/history/corrections")}
+                  >
+                    批改记录
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </nav>
+          )}
         </div>
 
+        {/* ── 右侧操作区 ── */}
         <div className="flex items-center gap-3">
           {/* 深色模式切换 */}
           <DropdownMenu>
-            <DropdownMenuTrigger className={buttonVariants({ variant: "ghost", size: "icon" })}>
+            <DropdownMenuTrigger
+              className={buttonVariants({ variant: "ghost", size: "icon" })}
+            >
               <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">切换主题</span>
@@ -138,10 +184,14 @@ export function Navbar() {
           {/* 用户菜单 */}
           {session ? (
             <DropdownMenu>
-              <DropdownMenuTrigger className={buttonVariants({ variant: "ghost", size: "icon" })}>
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    {(session.user?.name || session.user?.email || "U")[0].toUpperCase()}
+              <DropdownMenuTrigger
+                className={buttonVariants({ variant: "ghost", size: "icon" })}
+              >
+                <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {(session.user?.name ||
+                      session.user?.email ||
+                      "U")[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
@@ -149,7 +199,9 @@ export function Navbar() {
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
                     {session.user?.name && (
-                      <p className="font-medium text-sm">{session.user.name}</p>
+                      <p className="font-medium text-sm">
+                        {session.user.name}
+                      </p>
                     )}
                     <p className="text-xs text-muted-foreground">
                       {session.user?.email}
@@ -160,47 +212,41 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => router.push("/write")}>
                   写作翻译
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/optimize")}>
+                  写作优化
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/correct")}>
                   文章批改
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/optimize")}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  写作优化
-                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push("/notebook")}>
                   笔记本
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/grammar-patterns")}>
+                <DropdownMenuItem
+                  onClick={() => router.push("/grammar-patterns")}
+                >
                   语法病历
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/report")}>
                   学习报告
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/wordbooks")}>
+                  单词本
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push("/friends")}>
-                  <Users className="mr-2 h-4 w-4" />
                   好友
                   {friendBadge > 0 && (
-                    <Badge variant="destructive" className="ml-auto h-4 px-1 text-[10px] leading-none">
+                    <Badge
+                      variant="destructive"
+                      className="ml-auto h-4 px-1 text-[10px] leading-none"
+                    >
                       {friendBadge}
                     </Badge>
                   )}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/wordbooks")}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  单词本
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/dashboard")}>
                   仪表盘
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/history")}>
-                  翻译记录
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/history/corrections")}>
-                  批改记录
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/history/optimizations")}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  优化记录
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -213,7 +259,10 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <div className="hidden md:flex items-center gap-2">
-              <Link href="/login" className={buttonVariants({ variant: "ghost" })}>
+              <Link
+                href="/login"
+                className={buttonVariants({ variant: "ghost" })}
+              >
                 登录
               </Link>
               <Link href="/register" className={buttonVariants()}>
@@ -234,71 +283,138 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* 移动端菜单 */}
+      {/* ═══ 移动端菜单 ═══ */}
       <div
         className={`md:hidden border-t bg-background overflow-hidden transition-all duration-200 ease-in-out ${
-          menuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          menuOpen ? "max-h-[32rem] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="px-4 py-3 space-y-2">
+        <div className="px-4 py-3 space-y-1.5">
           {session ? (
             <>
-              <Link href="/write" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
-                写作
+              <MobileSectionHeader label="核心工具" />
+              <Link
+                href="/write"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
+                翻译
               </Link>
-              <Link href="/correct" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
-                批改
-              </Link>
-              <Link href="/optimize" className="block py-2.5 text-sm flex items-center gap-1" onClick={() => setMenuOpen(false)}>
-                <Sparkles className="h-3.5 w-3.5" />
+              <Link
+                href="/optimize"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
                 优化
               </Link>
-              <Link href="/notebook" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/correct"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
+                批改
+              </Link>
+
+              <MobileSectionHeader label="学习工具" />
+              <Link
+                href="/notebook"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
                 笔记本
               </Link>
-              <Link href="/grammar-patterns" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/grammar-patterns"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
                 语法病历
               </Link>
-              <Link href="/report" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/report"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
                 学习报告
               </Link>
-              <Link href="/friends" className="block py-2.5 text-sm flex items-center gap-1" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/wordbooks"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
+                单词本
+              </Link>
+
+              <MobileSectionHeader label="社交" />
+              <Link
+                href="/friends"
+                className="block py-2 text-sm flex items-center gap-1"
+                onClick={() => setMenuOpen(false)}
+              >
                 好友
                 {friendBadge > 0 && (
-                  <Badge variant="destructive" className="h-4 px-1 text-[10px] leading-none">
+                  <Badge
+                    variant="destructive"
+                    className="h-4 px-1 text-[10px] leading-none"
+                  >
                     {friendBadge}
                   </Badge>
                 )}
               </Link>
-              <Link href="/wordbooks" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
-                单词本
-              </Link>
-              <Link href="/dashboard" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+
+              <MobileSectionHeader label="更多" />
+              <Link
+                href="/dashboard"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
                 仪表盘
               </Link>
-              <Link href="/history" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/history"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
                 翻译记录
               </Link>
-              <Link href="/history/corrections" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
-                批改记录
-              </Link>
-              <Link href="/history/optimizations" className="block py-2.5 text-sm flex items-center gap-1" onClick={() => setMenuOpen(false)}>
-                <Sparkles className="h-3.5 w-3.5" />
+              <Link
+                href="/history/optimizations"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
                 优化记录
               </Link>
-              <button
-                className="block py-2.5 text-sm text-red-600 dark:text-red-400"
-                onClick={() => signOut({ callbackUrl: "/" })}
+              <Link
+                href="/history/corrections"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
               >
-                退出登录
-              </button>
+                批改记录
+              </Link>
+
+              <div className="border-t mt-2 pt-2">
+                <button
+                  className="block py-2.5 text-sm text-red-600 dark:text-red-400 w-full text-left"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                >
+                  退出登录
+                </button>
+              </div>
             </>
           ) : (
             <>
-              <Link href="/login" className="block py-2.5 text-sm" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/login"
+                className="block py-2.5 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
                 登录
               </Link>
-              <Link href="/register" className="block py-2.5 text-sm font-medium" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/register"
+                className="block py-2.5 text-sm font-medium"
+                onClick={() => setMenuOpen(false)}
+              >
                 免费注册
               </Link>
             </>

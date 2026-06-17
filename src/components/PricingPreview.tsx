@@ -30,7 +30,7 @@ export function PricingPreview() {
                   "历史记录查看",
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" /> {f}
+                    <Check className="h-4 w-4 text-accent" /> {f}
                   </li>
                 ))}
               </ul>
@@ -66,7 +66,7 @@ export function PricingPreview() {
                   "优先技术支持",
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" /> {f}
+                    <Check className="h-4 w-4 text-accent" /> {f}
                   </li>
                 ))}
               </ul>
