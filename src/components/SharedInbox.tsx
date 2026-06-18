@@ -55,7 +55,7 @@ export function SharedInbox() {
     setContentDetail("");
     setDetailLoading(true);
 
-    // 标记已读
+    // 标记已读（通过 PATCH）
     if (!item.read) {
       try {
         await fetch(`/api/friends/shared/${item.id}`, {
@@ -71,17 +71,16 @@ export function SharedInbox() {
       }
     }
 
-    // 获取内容详情
+    // 通过统一的 GET /api/friends/shared/[id] 获取内容详情
     try {
-      const endpoint = getContentEndpoint(item.contentType, item.contentId);
-      if (endpoint) {
-        const res = await fetch(endpoint);
-        if (res.ok) {
-          const data = await res.json();
-          setContentDetail(formatContent(item.contentType, data));
-        } else {
-          setContentDetail("内容已被删除或不可用");
-        }
+      const res = await fetch(`/api/friends/shared/${item.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setContentDetail(formatContent(item.contentType, data.content));
+      } else if (res.status === 404) {
+        setContentDetail("原内容已被删除或不可用");
+      } else {
+        setContentDetail("加载详情失败");
       }
     } catch {
       setContentDetail("加载详情失败");
@@ -90,37 +89,31 @@ export function SharedInbox() {
     }
   };
 
-  const getContentEndpoint = (type: SharedContentType, contentId: string): string | null => {
-    switch (type) {
-      case "writing":
-        return `/api/history?writingId=${contentId}`;
-      case "correction":
-        return `/api/history?correctionId=${contentId}`;
-      case "savedWord":
-        return `/api/notebook/word`; // 返回全部然后前端匹配
-      case "savedGrammar":
-        return `/api/notebook/grammar`; // 同上
-      default:
-        return null;
-    }
-  };
-
-  const formatContent = (type: SharedContentType, data: unknown): string => {
-    // 简单格式化显示
-    const d = data as Record<string, unknown>;
-    if (!d) return "暂无内容";
+  const formatContent = (type: SharedContentType, data: Record<string, unknown> | null): string => {
+    if (!data) return "暂无内容";
 
     switch (type) {
       case "writing":
-        return `原文：${d.sourceText || ""}\n\n译文：${d.resultText || ""}`;
+        return `原文：${data.sourceText || ""}\n\n译文：${data.resultText || ""}`;
       case "correction":
-        return `作文：${d.essayText || ""}\n\n总分：${d.totalScore}/${d.maxScore}\n\n总评：${d.overallComment || ""}`;
-      case "savedWord":
-        return `单词：${d.word || ""}\n释义：${d.chinese || ""}\n等级：${d.level || ""}\n用法：${d.usage || ""}`;
-      case "savedGrammar":
-        return `语法点：${d.point || ""}\n等级：${d.level || ""}\n结构：${d.structure || ""}\n解释：${d.explanation || ""}`;
+        return `作文：${data.essayText || ""}\n\n总分：${data.totalScore || ""}/${data.maxScore || ""}\n\n总评：${data.overallComment || ""}`;
+      case "savedWord": {
+        let result = `单词：${data.word || ""}\n释义：${data.chinese || ""}`;
+        if (data.level) result += `\n等级：${data.level}`;
+        if (data.usage) result += `\n用法：${data.usage}`;
+        const examples = data.examples as string[] | undefined;
+        if (examples?.length) result += `\n例句：${examples.join("；")}`;
+        return result;
+      }
+      case "savedGrammar": {
+        let result = `语法点：${data.point || ""}`;
+        if (data.level) result += `\n等级：${data.level}`;
+        if (data.structure) result += `\n结构：${data.structure}`;
+        if (data.explanation) result += `\n解释：${data.explanation}`;
+        return result;
+      }
       default:
-        return JSON.stringify(d, null, 2);
+        return JSON.stringify(data, null, 2);
     }
   };
 
