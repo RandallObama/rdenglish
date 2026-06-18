@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Loader2, UserX, UserPlus, Users, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getBtnStyle } from "@/lib/button-colors";
@@ -18,6 +26,7 @@ export function FriendsList({ onSearchTab }: FriendsListProps) {
   const [friends, setFriends] = useState<FriendItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string | null } | null>(null);
   const { openChat } = useChat();
 
   const fetchFriends = useCallback(async () => {
@@ -119,7 +128,7 @@ export function FriendsList({ onSearchTab }: FriendsListProps) {
                 size="sm"
                 className="text-muted-foreground hover:text-destructive"
                 disabled={removingId === friend.id}
-                onClick={() => handleRemove(friend.id, friend.name)}
+                onClick={() => setConfirmDelete({ id: friend.id, name: friend.name })}
               >
                 {removingId === friend.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -132,6 +141,34 @@ export function FriendsList({ onSearchTab }: FriendsListProps) {
           </CardContent>
         </Card>
       ))}
+
+      {/* 删除确认弹窗 */}
+      <Dialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>确认删除好友</DialogTitle>
+            <DialogDescription>
+              确定要删除好友{confirmDelete?.name ? `「${confirmDelete.name}」` : ""}吗？删除后将同时清空双方的聊天记录，此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (confirmDelete) {
+                  handleRemove(confirmDelete.id, confirmDelete.name);
+                  setConfirmDelete(null);
+                }
+              }}
+            >
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

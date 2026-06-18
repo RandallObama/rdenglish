@@ -112,7 +112,7 @@ export function ChatPanel() {
     [userId]
   );
 
-  // 初始加载 + 轮询
+  // 初始加载
   useEffect(() => {
     if (isOpen) {
       fetchConversations();
@@ -145,7 +145,7 @@ export function ChatPanel() {
         pollRef.current = null;
       }
     };
-  }, [selectedFriend?.friendId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedFriend?.friendId, fetchMessages]);
 
   // 自动滚底
   useEffect(() => {

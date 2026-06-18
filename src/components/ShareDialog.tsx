@@ -67,6 +67,14 @@ export function ShareDialog({
     }
   };
 
+  const safeJson = async (res: Response) => {
+    try {
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
   const handleShare = async () => {
     if (!selectedId) return;
     setSharing(true);
@@ -81,8 +89,8 @@ export function ShareDialog({
           contentId,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "分享失败");
+      const data = await safeJson(res);
+      if (!res.ok) throw new Error(data?.error || "分享失败，请稍后重试");
       toast.success("已通过聊天发送给好友");
       onSuccess?.();
       onOpenChange(false);

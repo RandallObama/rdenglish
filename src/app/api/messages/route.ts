@@ -6,177 +6,187 @@ const CACHE_HEADER = { "Cache-Control": "private, max-age=5, stale-while-revalid
 
 /** 获取会话列表（去重好友 + 最后消息 + 未读数） */
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
-
-  // 获取用户参与的所有消息，按时间倒序
-  const messages = await prisma.message.findMany({
-    where: {
-      OR: [{ senderId: userId }, { receiverId: userId }],
-    },
-    orderBy: { createdAt: "desc" },
-    take: 500,
-  });
-
-  // 内存中去重：每个好友只保留最新一条消息
-  const conversationMap = new Map<
-    string,
-    { friendId: string; lastMessage: string; lastMessageAt: string; unreadCount: number }
-  >();
-
-  const unreadCounts = new Map<string, number>();
-  // 预计算每个伙伴的未读数
-  for (const m of messages) {
-    if (m.receiverId === userId && !m.read) {
-      const partner = m.senderId;
-      unreadCounts.set(partner, (unreadCounts.get(partner) || 0) + 1);
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "请先登录" }, { status: 401 });
     }
-  }
 
-  for (const m of messages) {
-    const partner = m.senderId === userId ? m.receiverId : m.senderId;
-    if (!conversationMap.has(partner)) {
-      const typeLabel: Record<string, string> = {
-        writing: "[翻译]", correction: "[批改]",
-        savedWord: "[生词]", savedGrammar: "[语法]",
-      };
-      const preview = m.content
-        ? (m.content.length > 50 ? m.content.slice(0, 50) + "…" : m.content)
-        : m.contentType
-        ? (typeLabel[m.contentType] || "[分享]")
-        : "";
-      conversationMap.set(partner, {
-        friendId: partner,
-        lastMessage: preview,
-        lastMessageAt: m.createdAt.toISOString(),
-        unreadCount: unreadCounts.get(partner) || 0,
-      });
-    }
-  }
+    const userId = session.user.id;
 
-  // 查询好友名称
-  const friendIds = Array.from(conversationMap.keys());
-  let friendNames: Record<string, string | null> = {};
-  if (friendIds.length > 0) {
-    const users = await prisma.user.findMany({
-      where: { id: { in: friendIds } },
-      select: { id: true, name: true },
+    // 获取用户参与的所有消息，按时间倒序
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [{ senderId: userId }, { receiverId: userId }],
+      },
+      orderBy: { createdAt: "desc" },
+      take: 500,
     });
-    friendNames = Object.fromEntries(users.map((u) => [u.id, u.name]));
+
+    // 内存中去重：每个好友只保留最新一条消息
+    const conversationMap = new Map<
+      string,
+      { friendId: string; lastMessage: string; lastMessageAt: string; unreadCount: number }
+    >();
+
+    const unreadCounts = new Map<string, number>();
+    // 预计算每个伙伴的未读数
+    for (const m of messages) {
+      if (m.receiverId === userId && !m.read) {
+        const partner = m.senderId;
+        unreadCounts.set(partner, (unreadCounts.get(partner) || 0) + 1);
+      }
+    }
+
+    for (const m of messages) {
+      const partner = m.senderId === userId ? m.receiverId : m.senderId;
+      if (!conversationMap.has(partner)) {
+        const typeLabel: Record<string, string> = {
+          writing: "[翻译]", correction: "[批改]",
+          savedWord: "[生词]", savedGrammar: "[语法]",
+        };
+        const preview = m.content
+          ? (m.content.length > 50 ? m.content.slice(0, 50) + "…" : m.content)
+          : m.contentType
+          ? (typeLabel[m.contentType] || "[分享]")
+          : "";
+        conversationMap.set(partner, {
+          friendId: partner,
+          lastMessage: preview,
+          lastMessageAt: m.createdAt.toISOString(),
+          unreadCount: unreadCounts.get(partner) || 0,
+        });
+      }
+    }
+
+    // 查询好友名称
+    const friendIds = Array.from(conversationMap.keys());
+    let friendNames: Record<string, string | null> = {};
+    if (friendIds.length > 0) {
+      const users = await prisma.user.findMany({
+        where: { id: { in: friendIds } },
+        select: { id: true, name: true },
+      });
+      friendNames = Object.fromEntries(users.map((u) => [u.id, u.name]));
+    }
+
+    const conversations = Array.from(conversationMap.values())
+      .map((c) => ({
+        ...c,
+        friendName: friendNames[c.friendId] ?? null,
+      }))
+      .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
+
+    const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+
+    return NextResponse.json({ conversations, totalUnread }, { headers: CACHE_HEADER });
+  } catch (e) {
+    console.error("GET /api/messages error:", e);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
   }
-
-  const conversations = Array.from(conversationMap.values())
-    .map((c) => ({
-      ...c,
-      friendName: friendNames[c.friendId] ?? null,
-    }))
-    .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
-
-  const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
-
-  return NextResponse.json({ conversations, totalUnread }, { headers: CACHE_HEADER });
 }
 
 /** 发送消息 */
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
-  let body: { receiverId?: string; content?: string; contentType?: string; contentId?: string };
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "请求格式无效" }, { status: 400 });
-  }
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    }
 
-  const { receiverId, content, contentType, contentId } = body;
+    const userId = session.user.id;
+    let body: { receiverId?: string; content?: string; contentType?: string; contentId?: string };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "请求格式无效" }, { status: 400 });
+    }
 
-  if (!receiverId || typeof receiverId !== "string") {
-    return NextResponse.json({ error: "缺少接收者" }, { status: 400 });
-  }
-  if (receiverId === userId) {
-    return NextResponse.json({ error: "不能给自己发消息" }, { status: 400 });
-  }
+    const { receiverId, content, contentType, contentId } = body;
 
-  // 分享内容时必须有 contentType 和 contentId
-  if (contentType && !contentId) {
-    return NextResponse.json({ error: "缺少分享内容ID" }, { status: 400 });
-  }
-  if (contentId && !contentType) {
-    return NextResponse.json({ error: "缺少分享内容类型" }, { status: 400 });
-  }
-  if (contentType && !["writing", "correction", "savedWord", "savedGrammar"].includes(contentType)) {
-    return NextResponse.json({ error: "无效的分享类型" }, { status: 400 });
-  }
+    if (!receiverId || typeof receiverId !== "string") {
+      return NextResponse.json({ error: "缺少接收者" }, { status: 400 });
+    }
+    if (receiverId === userId) {
+      return NextResponse.json({ error: "不能给自己发消息" }, { status: 400 });
+    }
 
-  // 纯文字消息必须有内容，分享内容时消息可为空
-  if (!contentType && (!content || typeof content !== "string" || !content.trim())) {
-    return NextResponse.json({ error: "消息内容不能为空" }, { status: 400 });
-  }
-  if (content && content.length > 2000) {
-    return NextResponse.json({ error: "消息不能超过2000字" }, { status: 400 });
-  }
+    // 分享内容时必须有 contentType 和 contentId
+    if (contentType && !contentId) {
+      return NextResponse.json({ error: "缺少分享内容ID" }, { status: 400 });
+    }
+    if (contentId && !contentType) {
+      return NextResponse.json({ error: "缺少分享内容类型" }, { status: 400 });
+    }
+    if (contentType && !["writing", "correction", "savedWord", "savedGrammar"].includes(contentType)) {
+      return NextResponse.json({ error: "无效的分享类型" }, { status: 400 });
+    }
 
-  // 验证是好友关系
-  const friendship = await prisma.friendship.findFirst({
-    where: {
-      status: "accepted",
-      OR: [
-        { requesterId: userId, addresseeId: receiverId },
-        { requesterId: receiverId, addresseeId: userId },
-      ],
-    },
-  });
-  if (!friendship) {
-    return NextResponse.json({ error: "只能给好友发消息" }, { status: 403 });
-  }
+    // 纯文字消息必须有内容，分享内容时消息可为空
+    if (!contentType && (!content || typeof content !== "string" || !content.trim())) {
+      return NextResponse.json({ error: "消息内容不能为空" }, { status: 400 });
+    }
+    if (content && content.length > 2000) {
+      return NextResponse.json({ error: "消息不能超过2000字" }, { status: 400 });
+    }
 
-  // 分享内容时验证所有权
-  if (contentType && contentId) {
-    let contentExists = false;
-    switch (contentType) {
-      case "writing": {
-        const w = await prisma.writing.findUnique({ where: { id: contentId } });
-        contentExists = !!w && w.userId === userId;
-        break;
+    // 验证是好友关系
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        status: "accepted",
+        OR: [
+          { requesterId: userId, addresseeId: receiverId },
+          { requesterId: receiverId, addresseeId: userId },
+        ],
+      },
+    });
+    if (!friendship) {
+      return NextResponse.json({ error: "只能给好友发消息" }, { status: 403 });
+    }
+
+    // 分享内容时验证所有权
+    if (contentType && contentId) {
+      let contentExists = false;
+      switch (contentType) {
+        case "writing": {
+          const w = await prisma.writing.findUnique({ where: { id: contentId } });
+          contentExists = !!w && w.userId === userId;
+          break;
+        }
+        case "correction": {
+          const c = await prisma.correction.findUnique({ where: { id: contentId } });
+          contentExists = !!c && c.userId === userId;
+          break;
+        }
+        case "savedWord": {
+          const w = await prisma.savedWord.findUnique({ where: { id: contentId } });
+          contentExists = !!w && w.userId === userId;
+          break;
+        }
+        case "savedGrammar": {
+          const g = await prisma.savedGrammar.findUnique({ where: { id: contentId } });
+          contentExists = !!g && g.userId === userId;
+          break;
+        }
       }
-      case "correction": {
-        const c = await prisma.correction.findUnique({ where: { id: contentId } });
-        contentExists = !!c && c.userId === userId;
-        break;
-      }
-      case "savedWord": {
-        const w = await prisma.savedWord.findUnique({ where: { id: contentId } });
-        contentExists = !!w && w.userId === userId;
-        break;
-      }
-      case "savedGrammar": {
-        const g = await prisma.savedGrammar.findUnique({ where: { id: contentId } });
-        contentExists = !!g && g.userId === userId;
-        break;
+      if (!contentExists) {
+        return NextResponse.json({ error: "分享内容不存在" }, { status: 404 });
       }
     }
-    if (!contentExists) {
-      return NextResponse.json({ error: "分享内容不存在" }, { status: 404 });
-    }
+
+    const message = await prisma.message.create({
+      data: {
+        senderId: userId,
+        receiverId,
+        content: (content || "").trim(),
+        contentType: contentType || null,
+        contentId: contentId || null,
+      },
+    });
+
+    return NextResponse.json({ id: message.id, success: true });
+  } catch (e) {
+    console.error("POST /api/messages error:", e);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
   }
-
-  const message = await prisma.message.create({
-    data: {
-      senderId: userId,
-      receiverId,
-      content: (content || "").trim(),
-      contentType: contentType || null,
-      contentId: contentId || null,
-    },
-  });
-
-  return NextResponse.json({ id: message.id, success: true });
 }

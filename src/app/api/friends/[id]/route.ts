@@ -25,7 +25,7 @@ export async function DELETE(
 
   const friendId = friendship.requesterId === userId ? friendship.addresseeId : friendship.requesterId;
 
-  // 同时删除双向的消息记录
+  // 同时删除双向的消息记录和好友关系
   await prisma.$transaction([
     prisma.message.deleteMany({
       where: {
@@ -35,9 +35,6 @@ export async function DELETE(
         ],
       },
     }),
-    // 清理可能残留的旧分享记录
-    prisma.$executeRawUnsafe(`DELETE FROM SharedContent WHERE (senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?)`,
-      userId, friendId, friendId, userId),
     prisma.friendship.delete({ where: { id } }),
   ]);
 
