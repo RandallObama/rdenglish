@@ -1,10 +1,5 @@
-import OpenAI from "openai";
+import { aiClient } from "@/lib/ai-client";
 import type { CommonMistake, GrammarExercise } from "@/types";
-
-const client = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY || "",
-  baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
-});
 
 // ── 趋势计算 ──
 
@@ -92,7 +87,7 @@ export async function generateExercises(
 要求：每个语法点 3 道题，混合填空题和改错题。`;
 
   try {
-    const response = await client.chat.completions.create({
+    const response = await aiClient.chat.completions.create({
       model: "deepseek-chat",
       messages: [
         { role: "system", content: EXERCISE_SYSTEM_PROMPT },

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, UserX, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { FriendItem } from "@/types";
 
 interface FriendsListProps {
@@ -70,7 +71,7 @@ export function FriendsList({ onSearchTab }: FriendsListProps) {
             去搜索好友的昵称，添加学习伙伴吧
           </p>
           {onSearchTab && (
-            <Button variant="outline" onClick={onSearchTab}>
+            <Button variant="outline" onClick={onSearchTab} style={getBtnStyle("friends:search")}>
               <UserPlus className="h-4 w-4 mr-2" />
               搜索好友
             </Button>

@@ -42,10 +42,14 @@ export async function PATCH(
     if (friendship.addresseeId !== userId) {
       return NextResponse.json({ error: "无权操作" }, { status: 403 });
     }
-    await prisma.friendship.update({
-      where: { id },
+    // 原子化更新：只接受 status=pending 的记录，防止并发竞态
+    const result = await prisma.friendship.updateMany({
+      where: { id, status: "pending" },
       data: { status: "accepted" },
     });
+    if (result.count === 0) {
+      return NextResponse.json({ error: "该请求已处理" }, { status: 409 });
+    }
     return NextResponse.json({ success: true, status: "accepted" });
   }
 
@@ -55,7 +59,13 @@ export async function PATCH(
     if (friendship.addresseeId !== userId && friendship.requesterId !== userId) {
       return NextResponse.json({ error: "无权操作" }, { status: 403 });
     }
-    await prisma.friendship.delete({ where: { id } });
+    // 原子化删除：只删除 status=pending 的记录，防止并发竞态
+    const result = await prisma.friendship.deleteMany({
+      where: { id, status: "pending" },
+    });
+    if (result.count === 0) {
+      return NextResponse.json({ error: "该请求已处理" }, { status: 409 });
+    }
     return NextResponse.json({ success: true });
   }
 

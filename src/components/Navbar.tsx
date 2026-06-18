@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { getBtnStyle } from "@/lib/button-colors";
 
 /* 桌面端分组分隔线 */
 function NavDivider() {
@@ -265,7 +266,7 @@ export function Navbar() {
               >
                 登录
               </Link>
-              <Link href="/register" className={buttonVariants()}>
+              <Link href="/register" className={buttonVariants()} style={getBtnStyle("nav:register")}>
                 免费注册
               </Link>
             </div>

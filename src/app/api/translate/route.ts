@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { translateAndAnalyze, streamTranslateAndAnalyze } from "@/lib/deepseek";
-import { consumeUsage } from "@/lib/rate-limit";
+import { consumeUsage, checkAiRpm } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { createSSEResponse } from "@/lib/stream";
 import type { ExamType, WritingStyle } from "@/types";
@@ -16,6 +16,16 @@ export async function POST(request: Request) {
   }
 
   const userId = session.user.id;
+
+  // 每分钟 AI 请求节流（所有用户，含 Pro）
+  const rpm = checkAiRpm(userId);
+  if (!rpm.allowed) {
+    return NextResponse.json(
+      { error: `请求过于频繁，请 ${rpm.retryAfter} 秒后再试` },
+      { status: 429, headers: { "Retry-After": String(rpm.retryAfter) } }
+    );
+  }
+
   const usage = await consumeUsage(userId);
   if (!usage.allowed) {
     return NextResponse.json(
@@ -32,9 +42,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "请输入文本" }, { status: 400 });
     }
 
-    if (text.length > 2000) {
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount > 1200) {
       return NextResponse.json(
-        { error: "文本过长，请限制在 2000 字以内" },
+        { error: "文本过长，请限制在 1200 词以内" },
         { status: 400 }
       );
     }

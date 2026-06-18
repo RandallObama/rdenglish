@@ -17,6 +17,7 @@ import { LoadingProgress } from "@/components/LoadingProgress";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { readSSE } from "@/lib/stream";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { CorrectionResult, ExamType } from "@/types";
 
 interface EssayCorrectorProps {
@@ -68,12 +69,19 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
     setStreamingText("");
     setStreaming(false);
 
+    // 客户端超时保护：25s 安全上限
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 25000);
+
     try {
       const res = await fetch("/api/correct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ essay: essay.trim(), examType, stream: true }),
+        signal: abortController.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (res.status === 401) {
         router.push("/login");
@@ -108,9 +116,14 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
       if (!gotResult) {
         onError("AI 响应超时，请尝试提交更短的作文或稍后重试");
       }
-    } catch {
-      onError("网络错误，请稍后重试");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        onError("请求超时，请尝试提交更短的作文或稍后重试");
+      } else {
+        onError("网络错误，请稍后重试");
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
       setStreaming(false);
     }
@@ -194,7 +207,7 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
           </Select>
         </div>
         <Badge variant="outline" className="text-xs h-8">
-          {essay.trim() ? essay.trim().split(/\s+/).length : 0}/2000 词
+          {essay.trim() ? essay.trim().split(/\s+/).filter(Boolean).length : 0}/1200 词
         </Badge>
 
         {/* 续写按钮 */}
@@ -204,6 +217,7 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
           onClick={handleCowrite}
           disabled={!essay.trim() || cowriteLoading}
           className="h-8 text-xs gap-1.5 ml-auto"
+          style={getBtnStyle("corrector:cowrite")}
         >
           {cowriteLoading ? (
             <>
@@ -274,6 +288,7 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
           disabled={!essay.trim()}
           className="w-full"
           size="lg"
+          style={getBtnStyle("corrector:submit")}
         >
           <Send className="mr-2 h-4 w-4" />
           提交批改

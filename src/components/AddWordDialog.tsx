@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { getBtnStyle } from "@/lib/button-colors";
 
 interface AddWordDialogProps {
   open: boolean;
@@ -141,7 +142,7 @@ export function AddWordDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={handleAdd} disabled={!word.trim() || !chinese.trim() || adding}>
+          <Button onClick={handleAdd} disabled={!word.trim() || !chinese.trim() || adding} style={getBtnStyle("addword:submit")}>
             {adding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             添加
           </Button>

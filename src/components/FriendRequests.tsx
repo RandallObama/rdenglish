@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, UserCheck, UserX, Clock, Inbox, Send } from "lucide-react";
 import { toast } from "sonner";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { FriendRequestData } from "@/types";
 
 interface FriendRequestsProps {
@@ -149,6 +150,7 @@ export function FriendRequests({ onAccepted }: FriendRequestsProps) {
                     size="sm"
                     disabled={processingId === req.id}
                     onClick={() => handleAction(req.id, "accept")}
+                    style={getBtnStyle("friendreq:accept")}
                   >
                     {processingId === req.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -162,6 +164,7 @@ export function FriendRequests({ onAccepted }: FriendRequestsProps) {
                     size="sm"
                     disabled={processingId === req.id}
                     onClick={() => handleAction(req.id, "reject")}
+                    style={getBtnStyle("friendreq:reject")}
                   >
                     <UserX className="h-4 w-4" />
                     <span className="ml-1 hidden sm:inline">拒绝</span>

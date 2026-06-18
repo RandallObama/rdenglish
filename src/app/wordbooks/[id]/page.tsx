@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { WordbookDetail } from "@/types";
 
 export default function WordbookDetailPage() {
@@ -140,11 +141,11 @@ export default function WordbookDetailPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => setInviteOpen(true)}>
+            <Button size="sm" onClick={() => setInviteOpen(true)} style={getBtnStyle("wordbook:invite")}>
               <UserPlus className="h-4 w-4 mr-2" />
               邀请好友
             </Button>
-            <Button size="sm" onClick={() => setAddWordOpen(true)}>
+            <Button size="sm" onClick={() => setAddWordOpen(true)} style={getBtnStyle("wordbook:add-word")}>
               <Plus className="h-4 w-4 mr-2" />
               添加单词
             </Button>
@@ -199,7 +200,7 @@ export default function WordbookDetailPage() {
             <p className="text-muted-foreground text-sm mb-4">
               快来添加第一个单词吧
             </p>
-            <Button onClick={() => setAddWordOpen(true)}>
+            <Button onClick={() => setAddWordOpen(true)} style={getBtnStyle("wordbook:add-word-empty")}>
               <Plus className="h-4 w-4 mr-2" />
               添加单词
             </Button>

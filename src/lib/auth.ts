@@ -12,31 +12,40 @@ async function checkLoginRateLimit(email: string): Promise<boolean> {
   const windowStart = new Date(Date.now() - LOGIN_WINDOW_MS);
   const now = new Date();
 
-  // 使用事务防止并发竞态
+  // 使用事务 + updateMany 原子操作，防止并发竞态
   const allowed = await prisma.$transaction(async (tx) => {
-    const existing = await tx.loginAttempt.findFirst({
+    // 步骤 1：尝试原子递增窗口内未超限的记录
+    const incremented = await tx.loginAttempt.updateMany({
       where: {
         email,
         firstAttemptAt: { gte: windowStart },
+        count: { lt: LOGIN_MAX_ATTEMPTS },
+      },
+      data: { count: { increment: 1 } },
+    });
+
+    if (incremented.count > 0) {
+      return true; // 成功递增，允许登录
+    }
+
+    // 步骤 2：检查是否被窗口内已达上限的记录阻塞
+    const blocked = await tx.loginAttempt.findFirst({
+      where: {
+        email,
+        firstAttemptAt: { gte: windowStart },
+        count: { gte: LOGIN_MAX_ATTEMPTS },
       },
     });
 
-    if (!existing) {
-      // 时间窗口内的首次尝试 → 创建记录
-      await tx.loginAttempt.create({
-        data: { email, count: 1, firstAttemptAt: now },
-      });
-      return true;
+    if (blocked) {
+      return false; // 已达上限，拦截
     }
 
-    if (existing.count >= LOGIN_MAX_ATTEMPTS) {
-      return false; // 已超限，拦截
-    }
-
-    // 递增计数
-    await tx.loginAttempt.update({
-      where: { id: existing.id },
-      data: { count: { increment: 1 } },
+    // 步骤 3：窗口内无记录（首次尝试 或 窗口已过期）
+    // 删除旧窗口记录（如果有），创建新窗口记录
+    await tx.loginAttempt.deleteMany({ where: { email } });
+    await tx.loginAttempt.create({
+      data: { email, count: 1, firstAttemptAt: now },
     });
     return true;
   });
@@ -74,7 +83,8 @@ const providers: Provider[] = [
         return null;
       }
 
-      const identifier = credentials.email as string;
+      // 规整化：去首尾空格 + 邮箱转小写（防止 SQLite 大小写敏感导致查不到用户）
+      const identifier = (credentials.email as string).trim().toLowerCase();
       const password = credentials.password as string;
 
       // 登录速率限制检查（按 identifier 存储，兼容邮箱和手机号）

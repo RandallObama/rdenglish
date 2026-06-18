@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Share2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { FriendItem, SharedContentType } from "@/types";
 
 interface ShareDialogProps {
@@ -168,6 +169,7 @@ export function ShareDialog({
           <Button
             onClick={handleShare}
             disabled={!selectedId || sharing || friends.length === 0}
+            style={getBtnStyle("share:send")}
           >
             {sharing ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />

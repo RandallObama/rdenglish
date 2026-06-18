@@ -73,7 +73,7 @@ export function SharedInbox() {
 
     // 获取内容详情
     try {
-      const endpoint = getContentEndpoint(item.contentType);
+      const endpoint = getContentEndpoint(item.contentType, item.contentId);
       if (endpoint) {
         const res = await fetch(endpoint);
         if (res.ok) {
@@ -90,15 +90,12 @@ export function SharedInbox() {
     }
   };
 
-  const getContentEndpoint = (type: SharedContentType): string | null => {
-    if (!viewingItem) return null;
-    const id = viewingItem.contentId;
+  const getContentEndpoint = (type: SharedContentType, contentId: string): string | null => {
     switch (type) {
       case "writing":
-        // 历史记录 API 可能不直接支持单条查询，我们通过列表来找
-        return `/api/history?writingId=${id}`;
+        return `/api/history?writingId=${contentId}`;
       case "correction":
-        return `/api/history?correctionId=${id}`;
+        return `/api/history?correctionId=${contentId}`;
       case "savedWord":
         return `/api/notebook/word`; // 返回全部然后前端匹配
       case "savedGrammar":

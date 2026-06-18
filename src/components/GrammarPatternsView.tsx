@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { GrammarExercisesDialog } from "@/components/GrammarExercisesDialog";
+import { getBtnStyle } from "@/lib/button-colors";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -178,7 +179,7 @@ export function GrammarPatternsView() {
           <p className="text-muted-foreground mb-6">
             完成至少一次作文批改后，这里将显示你的语法薄弱点分析
           </p>
-          <Button onClick={() => router.push("/correct")}>
+          <Button onClick={() => router.push("/correct")} style={getBtnStyle("grammar:go-correct")}>
             去批改一篇作文
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -292,6 +293,7 @@ export function GrammarPatternsView() {
           variant="default"
           disabled={selectedPoints.size === 0}
           onClick={() => setExercisesOpen(true)}
+          style={getBtnStyle("grammar:generate")}
         >
           <Dumbbell className="mr-2 h-4 w-4" />
           生成练习

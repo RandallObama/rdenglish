@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getBtnStyle } from "@/lib/button-colors";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -69,7 +70,17 @@ export default function RegisterPage() {
         return;
       }
 
-      toast.success("验证码已发送");
+      // 开发模式：显示验证码（短信未真实发送）
+      if (data.devCode) {
+        toast.success(`验证码已发送（开发模式）`, {
+          description: `验证码: ${data.devCode}`,
+          duration: 15000,
+        });
+        // 自动填入验证码
+        setCode(data.devCode);
+      } else {
+        toast.success("验证码已发送");
+      }
       startCountdown();
     } catch {
       setError("网络错误，请稍后重试");
@@ -248,7 +259,7 @@ export default function RegisterPage() {
                   <p className="text-sm text-destructive text-center">{error}</p>
                 )}
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading} style={getBtnStyle("register:email-submit")}>
                   {loading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
@@ -310,6 +321,7 @@ export default function RegisterPage() {
                       onClick={handleSendCode}
                       disabled={sending || countdown > 0}
                       className="shrink-0"
+                      style={getBtnStyle("register:send-code")}
                     >
                       {sending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -340,7 +352,7 @@ export default function RegisterPage() {
                   <p className="text-sm text-destructive text-center">{error}</p>
                 )}
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading} style={getBtnStyle("register:phone-submit")}>
                   {loading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}

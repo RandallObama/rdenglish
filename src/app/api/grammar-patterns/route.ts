@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { consumeUsage } from "@/lib/rate-limit";
+import { consumeUsage, checkAiRpm } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { generateExercises, computeTrend, buildPatternMap } from "@/lib/grammar-patterns";
 import type { GrammarPattern, GrammarPatternAnalysis } from "@/types";
@@ -96,6 +96,15 @@ export async function POST(request: Request) {
   }
 
   const userId = session.user.id;
+
+  // 每分钟 AI 请求节流（所有用户，含 Pro）
+  const rpm = checkAiRpm(userId);
+  if (!rpm.allowed) {
+    return NextResponse.json(
+      { error: `请求过于频繁，请 ${rpm.retryAfter} 秒后再试` },
+      { status: 429, headers: { "Retry-After": String(rpm.retryAfter) } }
+    );
+  }
 
   try {
     const body = await request.json();

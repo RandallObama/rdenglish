@@ -24,6 +24,7 @@ import {
   Share2,
 } from "lucide-react";
 import { ShareDialog } from "@/components/ShareDialog";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { SavedWordItem, SavedGrammarItem, SharedContentType } from "@/types";
 
 const levelVariant = {
@@ -66,11 +67,11 @@ export function NotebookList({
     <>
       <Tabs defaultValue="words">
         <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="words" className="gap-1">
+          <TabsTrigger value="words" className="gap-1" style={getBtnStyle("notebook:tab-words")}>
             <BookOpen className="h-4 w-4" />
             生词 ({words.length})
           </TabsTrigger>
-          <TabsTrigger value="grammars" className="gap-1">
+          <TabsTrigger value="grammars" className="gap-1" style={getBtnStyle("notebook:tab-grammar")}>
             <Lightbulb className="h-4 w-4" />
             语法 ({grammars.length})
           </TabsTrigger>
@@ -87,6 +88,7 @@ export function NotebookList({
                 variant="outline"
                 size="sm"
                 onClick={() => setPrintDialogOpen(true)}
+                style={getBtnStyle("notebook:print")}
               >
                 <Printer className="mr-1.5 h-4 w-4" />
                 打印词汇

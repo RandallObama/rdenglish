@@ -38,11 +38,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { email, password, name } = await request.json();
+    const { email: rawEmail, password, name } = await request.json();
 
-    if (!email || !password) {
+    if (!rawEmail || !password) {
       return NextResponse.json({ error: "邮箱和密码不能为空" }, { status: 400 });
     }
+
+    // 规整化：去首尾空格 + 转小写（防止 SQLite 大小写敏感 + AutoCapitalize）
+    const email = rawEmail.trim().toLowerCase();
 
     // 邮箱格式校验：必须有 @ 且域名部分含 .
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

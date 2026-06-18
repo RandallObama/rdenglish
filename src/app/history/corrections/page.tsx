@@ -14,6 +14,7 @@ import { Loader2, Trash2, GraduationCap, FileCheck, Lightbulb, BookOpen, Sparkle
 import { toast } from "sonner";
 import Link from "next/link";
 import { ShareDialog } from "@/components/ShareDialog";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { CorrectionRecord, ExamType, SharedContentType } from "@/types";
 
 const examLabels: Record<ExamType, string> = {
@@ -117,7 +118,7 @@ export default function CorrectionHistoryPage() {
             <Sparkles className="h-4 w-4 mr-1" />
             优化记录
           </Link>
-          <Link href="/correct" className={buttonVariants({ size: "sm" })}>
+          <Link href="/correct" className={buttonVariants({ size: "sm" })} style={getBtnStyle("history:new-correct")}>
             新建批改
           </Link>
         </div>
@@ -131,7 +132,7 @@ export default function CorrectionHistoryPage() {
             <p className="text-muted-foreground text-sm mb-4">
               提交你的第一篇英语作文吧
             </p>
-            <Link href="/correct" className={buttonVariants()}>
+            <Link href="/correct" className={buttonVariants()} style={getBtnStyle("history:start-correct")}>
               开始批改
             </Link>
           </CardContent>

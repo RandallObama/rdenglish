@@ -33,7 +33,7 @@ function useChartColors() {
     success: isDark ? "#8BC4B5" : "#6A9E8E",
     warning: isDark ? "#F5B800" : "#E5A000",
     danger: isDark ? "#F07070" : "#E05555",
-    background: isDark ? "#1a1a1a" : "#ffffff",
+    background: isDark ? "#1a1a1a" : "#EFECE6",
   };
 }
 

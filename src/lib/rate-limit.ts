@@ -8,6 +8,50 @@ const FREE_DAILY_LIMIT = (() => {
   return Number.isFinite(n) && n > 0 ? n : 3;
 })();
 
+/** AI 端点每分钟请求上限（所有用户，含 Pro），可通过 AI_RPM 环境变量配置（默认 30） */
+const AI_RPM = (() => {
+  const env = process.env.AI_RPM;
+  if (env === "Infinity") return Infinity;
+  const n = parseInt(env || "30", 10);
+  return Number.isFinite(n) && n > 0 ? n : 30;
+})();
+
+// ── 每分钟节流（内存实现，多实例不共享但作为纵深防御）──
+const rpmCounters = new Map<string, { count: number; resetAt: number }>();
+
+// 每 5 分钟清理过期计数器
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of rpmCounters) {
+    if (now > val.resetAt) rpmCounters.delete(key);
+  }
+}, 300_000);
+
+/**
+ * 检查用户是否超过每分钟 AI 请求限制。
+ * 返回 true 表示允许，false 表示需要等待。
+ */
+export function checkAiRpm(userId: string): { allowed: boolean; retryAfter: number } {
+  const now = Date.now();
+  const key = `ai:${userId}`;
+  const entry = rpmCounters.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    // 新窗口：60 秒
+    rpmCounters.set(key, { count: 1, resetAt: now + 60_000 });
+    return { allowed: true, retryAfter: 0 };
+  }
+
+  if (entry.count >= AI_RPM) {
+    return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) };
+  }
+
+  entry.count++;
+  return { allowed: true, retryAfter: 0 };
+}
+
+export { AI_RPM };
+
 function getToday(): string {
   return new Date().toISOString().split("T")[0];
 }

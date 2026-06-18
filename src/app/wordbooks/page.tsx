@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, BookOpen, Plus, Users, Crown } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { WordbookItem } from "@/types";
 
 export default function WordbooksPage() {
@@ -90,7 +91,7 @@ export default function WordbooksPage() {
             和好友一起背单词，协作建立词库
           </p>
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
+        <Button size="sm" onClick={() => setCreateOpen(true)} style={getBtnStyle("wordbooks:create")}>
           <Plus className="h-4 w-4 mr-2" />
           创建单词本
         </Button>
@@ -108,7 +109,7 @@ export default function WordbooksPage() {
             <p className="text-muted-foreground text-sm mb-4">
               创建一个共享单词本，邀请好友一起背单词
             </p>
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button onClick={() => setCreateOpen(true)} style={getBtnStyle("wordbooks:create-first")}>
               <Plus className="h-4 w-4 mr-2" />
               创建第一个单词本
             </Button>
@@ -173,7 +174,7 @@ export default function WordbooksPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleCreate} disabled={newName.trim().length < 2 || creating}>
+            <Button onClick={handleCreate} disabled={newName.trim().length < 2 || creating} style={getBtnStyle("wordbooks:create-confirm")}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               创建
             </Button>

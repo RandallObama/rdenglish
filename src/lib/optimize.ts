@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { aiClient } from "@/lib/ai-client";
 import type {
   OptimizeResult,
   OptimizeStyle,
@@ -6,11 +6,6 @@ import type {
   OptimizeIntensity,
   OptimizeMode,
 } from "@/types";
-
-const client = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY || "",
-  baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
-});
 
 // ═══════════════════════════════════════════════════════════
 // 风格 & 考试配置
@@ -312,7 +307,7 @@ export async function optimizeEssay(
   const systemPrompt = makeOptimizeSystemPrompt(style, examType, intensity, mode);
   const userMessage = buildUserMessage(text, mode, contextBefore, contextAfter);
 
-  const response = await client.chat.completions.create({
+  const response = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },
@@ -351,12 +346,11 @@ export async function* streamOptimizeEssay(
   mode: OptimizeMode = "full",
   contextBefore?: string,
   contextAfter?: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
+): AsyncGenerator<string, OptimizeResult, unknown> {
   const systemPrompt = makeOptimizeSystemPrompt(style, examType, intensity, mode);
   const userMessage = buildUserMessage(text, mode, contextBefore, contextAfter);
 
-  const stream = await client.chat.completions.create({
+  const stream = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },

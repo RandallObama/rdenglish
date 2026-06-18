@@ -24,6 +24,7 @@ import {
   GrammarTrendChart,
   VocabGrowthChart,
 } from "@/components/ReportCharts";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { ReportData, ReportPeriodType } from "@/types";
 
 // ── 周期标签 ──
@@ -254,7 +255,7 @@ export default function ReportView() {
         <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h2 className="text-lg font-semibold mb-2">加载失败</h2>
         <p className="text-muted-foreground mb-4">{error || "暂无数据"}</p>
-        <Button onClick={fetchReport}>重新加载</Button>
+        <Button onClick={fetchReport} style={getBtnStyle("report:reload")}>重新加载</Button>
       </div>
     );
   }
@@ -289,6 +290,7 @@ export default function ReportView() {
               setCustomStart("");
               setCustomEnd("");
             }}
+            style={getBtnStyle(`report:period-${p}`)}
           >
             <Calendar className="mr-2 h-4 w-4" />
             {PERIOD_LABELS[p]}
@@ -299,6 +301,7 @@ export default function ReportView() {
           variant={periodType === "custom" ? "default" : "outline"}
           size="sm"
           onClick={() => setPeriodType("custom")}
+          style={getBtnStyle("report:period-custom")}
         >
           自定义
         </Button>
@@ -320,7 +323,7 @@ export default function ReportView() {
             onChange={(e) => setCustomEnd(e.target.value)}
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
           />
-          <Button size="sm" onClick={fetchReport} disabled={!customStart || !customEnd}>
+          <Button size="sm" onClick={fetchReport} disabled={!customStart || !customEnd} style={getBtnStyle("report:query")}>
             查询
           </Button>
         </div>
@@ -336,11 +339,11 @@ export default function ReportView() {
               开始你的第一次练习吧，数据会在这里汇总成学习报告哦 ✨
             </p>
             <div className="flex items-center justify-center gap-3">
-              <Button onClick={() => (window.location.href = "/write")}>
+              <Button onClick={() => (window.location.href = "/write")} style={getBtnStyle("report:start-write")}>
                 <FileText className="mr-2 h-4 w-4" />
                 开始翻译
               </Button>
-              <Button variant="outline" onClick={() => (window.location.href = "/correct")}>
+              <Button variant="outline" onClick={() => (window.location.href = "/correct")} style={getBtnStyle("report:start-correct")}>
                 <GraduationCap className="mr-2 h-4 w-4" />
                 开始批改
               </Button>
@@ -484,6 +487,7 @@ export default function ReportView() {
                   onClick={handleGenerateInsights}
                   disabled={insightsLoading}
                   className="w-full sm:w-auto"
+                  style={getBtnStyle("report:ai-summary")}
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
                   生成 AI 学习总结
@@ -500,7 +504,7 @@ export default function ReportView() {
               {insightsError && (
                 <div className="text-center py-4">
                   <p className="text-sm text-red-500 mb-2">{insightsError}</p>
-                  <Button variant="outline" size="sm" onClick={handleGenerateInsights}>
+                  <Button variant="outline" size="sm" onClick={handleGenerateInsights} style={getBtnStyle("report:retry")}>
                     重试
                   </Button>
                 </div>

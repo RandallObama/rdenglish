@@ -91,17 +91,23 @@ export async function POST(request: Request) {
     });
 
     // 发送短信
-    const sent = await sendSmsCode(normalized, code);
+    const smsResult = await sendSmsCode(normalized, code);
 
-    if (!sent) {
-      console.error(`SMS failed for ${maskPhone(normalized)}`);
+    if (!smsResult.success) {
+      console.error(`[SMS] ❌ 发送失败 - 手机: ${maskPhone(normalized)}, 原因: ${smsResult.detail || "未知"}`);
       return NextResponse.json(
-        { error: "验证码发送失败，请稍后重试" },
+        { error: `验证码发送失败${smsResult.detail ? `: ${smsResult.detail}` : "，请稍后重试"}` },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, message: "验证码已发送" });
+    // 开发环境：在响应中返回验证码（因为短信不会真实发送）
+    const isDev = process.env.NODE_ENV !== "production";
+    return NextResponse.json({
+      success: true,
+      message: "验证码已发送",
+      ...(isDev ? { devCode: code } : {}),
+    });
   } catch (error) {
     console.error("SMS send error:", error);
     return NextResponse.json(

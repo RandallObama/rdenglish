@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { FriendItem } from "@/types";
 
 interface InviteFriendDialogProps {
@@ -120,6 +121,7 @@ export function InviteFriendDialog({
                   size="sm"
                   disabled={invitingId === friend.friendId}
                   onClick={() => handleInvite(friend.friendId)}
+                  style={getBtnStyle("invite:send")}
                 >
                   {invitingId === friend.friendId ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

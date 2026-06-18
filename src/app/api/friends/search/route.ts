@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkFriendRateLimit } from "@/lib/rate-limit-friend";
 
 const CACHE_HEADER = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
 
@@ -13,11 +14,20 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim();
 
-  if (!q || q.length < 1 || q.length > 50) {
-    return NextResponse.json({ error: "搜索关键词无效" }, { status: 400 });
+  if (!q || q.length < 2 || q.length > 50) {
+    return NextResponse.json({ error: "搜索关键词需 2-50 个字符" }, { status: 400 });
   }
 
   const userId = session.user.id;
+
+  // 频率限制（与好友请求共享计数器）
+  const limit = await checkFriendRateLimit(userId);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "搜索太频繁，请稍后再试" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
 
   // 查找名称包含搜索词的用户（排除自己、排除 name 为空的）
   const nameMatches = await prisma.user.findMany({
@@ -29,16 +39,16 @@ export async function GET(request: Request) {
     take: 20,
   });
 
-  // 查找当前用户已有的好友关系
+  // 查找当前用户已有的所有好友关系（含 blocked）
   const existingRelations = await prisma.friendship.findMany({
     where: {
       OR: [
         { requesterId: userId },
         { addresseeId: userId },
       ],
-      status: { in: ["pending", "accepted"] },
+      status: { in: ["pending", "accepted", "blocked"] },
     },
-    select: { requesterId: true, addresseeId: true },
+    select: { requesterId: true, addresseeId: true, status: true },
   });
 
   const relatedUserIds = new Set<string>();

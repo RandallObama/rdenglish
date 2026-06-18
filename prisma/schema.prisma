@@ -110,13 +110,22 @@ model SavedWord {
 
 model LoginAttempt {
   id             String   @id @default(cuid())
-  email          String
+  email          String   @unique
   count          Int      @default(1)
   firstAttemptAt DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  @@index([email])
   @@index([firstAttemptAt])
+}
+
+model FriendRateLimit {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  count          Int      @default(1)
+  windowStartAt  DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([windowStartAt])
 }
 
 model SavedGrammar {

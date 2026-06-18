@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { getBtnStyle } from "@/lib/button-colors";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/write";
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -24,21 +25,31 @@ function LoginForm() {
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email: identifier,
-      password,
-      redirect: false,
-    });
+    try {
+      const result = await signIn("credentials", {
+        email: identifier,
+        password,
+        redirect: false,
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (result?.error) {
-      setError("账号或密码错误");
-      return;
+      if (result?.error) {
+        // 显示真实错误信息，帮助定位问题
+        setError(`登录失败：${result.error}`);
+        return;
+      }
+
+      if (result?.ok) {
+        router.push(callbackUrl);
+        router.refresh();
+      } else {
+        setError(`登录异常：${JSON.stringify(result)}`);
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setError(`网络或系统错误：${err?.message || String(err)}`);
     }
-
-    router.push(callbackUrl);
-    router.refresh();
   };
 
   return (
@@ -84,7 +95,7 @@ function LoginForm() {
             <p className="text-sm text-destructive text-center">{error}</p>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading} style={getBtnStyle("login:submit")}>
             {loading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : null}

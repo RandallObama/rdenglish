@@ -1,10 +1,5 @@
-import OpenAI from "openai";
+import { aiClient } from "@/lib/ai-client";
 import type { CorrectionResult, ExamType } from "@/types";
-
-const client = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY || "",
-  baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
-});
 
 // ═══════════════════════════════════════════════════════════
 // 评分档位描述 — 每个考试类型的每个维度都定义了 4-5 个档位
@@ -457,7 +452,7 @@ export async function correctEssay(
   const standard = examStandards[examType];
   const systemPrompt = makeCorrectSystemPrompt(standard);
 
-  const response = await client.chat.completions.create({
+  const response = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },
@@ -497,12 +492,11 @@ export async function correctEssay(
 export async function* streamCorrectEssay(
   essayText: string,
   examType: ExamType = "general"
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
+): AsyncGenerator<string, CorrectionResult, unknown> {
   const standard = examStandards[examType];
   const systemPrompt = makeCorrectSystemPrompt(standard);
 
-  const response = await client.chat.completions.create({
+  const response = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },

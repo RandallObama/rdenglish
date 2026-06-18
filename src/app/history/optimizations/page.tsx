@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { Loader2, Sparkles, ArrowLeft, Gauge, PenLine, GraduationCap } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { OptimizationRecord } from "@/types";
 
 const styleLabels: Record<string, string> = {
@@ -50,23 +52,43 @@ export default function OptimizationHistoryPage() {
     }
     if (status === "loading") return;
 
-    setLoading(true);
-    fetch(`/api/optimize/history?page=${page}&pageSize=10`)
-      .then((res) => {
+    let cancelled = false;
+
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/optimize/history?page=${page}&pageSize=10`);
+
         if (res.status === 401) {
           router.push("/login");
-          return null;
+          return;
         }
-        return res.json();
-      })
-      .then((data) => {
-        if (data) {
+
+        if (!res.ok) {
+          throw new Error("加载失败");
+        }
+
+        const data = await res.json();
+        if (!cancelled) {
           setRecords(data.items);
           setTotalPages(data.totalPages);
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      } catch {
+        if (!cancelled) {
+          toast.error("加载优化记录失败");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchHistory();
+
+    return () => {
+      cancelled = true;
+    };
   }, [status, router, page]);
 
   if (status === "loading") {
@@ -100,7 +122,7 @@ export default function OptimizationHistoryPage() {
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Sparkles className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <p className="text-muted-foreground">暂无优化记录</p>
-            <Link href="/optimize" className={buttonVariants({ variant: "outline", className: "mt-4" })}>开始优化</Link>
+            <Link href="/optimize" className={buttonVariants({ variant: "outline", className: "mt-4" })} style={getBtnStyle("history:start-optimize")}>开始优化</Link>
           </CardContent>
         </Card>
       ) : (

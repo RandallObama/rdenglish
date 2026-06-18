@@ -17,6 +17,7 @@ import { LoadingProgress } from "@/components/LoadingProgress";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { readSSE } from "@/lib/stream";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { GrammarNote, VocabNote, ImprovementItem, TransitionAnalysis, OptimizeStyle, ExamType, OptimizeIntensity } from "@/types";
 
 interface OptimizerProps {
@@ -303,7 +304,7 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
         </div>
 
         <Badge variant="outline" className="text-xs h-8">
-          {text.length}/2000 字
+          {text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0}/1200 词
         </Badge>
 
         {/* 续写按钮 */}
@@ -313,6 +314,7 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
           onClick={handleCowrite}
           disabled={!text.trim() || cowriteLoading}
           className="h-8 text-xs gap-1.5 ml-auto"
+          style={getBtnStyle("optimizer:cowrite")}
         >
           {cowriteLoading ? (
             <>
@@ -341,7 +343,6 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
           onMouseUp={handleSelectionChange}
           onKeyUp={handleSelectionChange}
           className="min-h-[200px] sm:min-h-[220px] text-base resize-y"
-          maxLength={2000}
         />
 
         {/* 片段优化浮动按钮 */}
@@ -352,9 +353,10 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
               size="sm"
               onClick={() => handleSubmit(true)}
               className="h-8 text-xs gap-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2"
+              style={getBtnStyle("optimizer:fragment")}
             >
               <Scissors className="h-3.5 w-3.5" />
-              优化选中片段 ({selectedRange.end - selectedRange.start} 字)
+              优化选中片段 ({text.slice(selectedRange.start, selectedRange.end).trim().split(/\s+/).filter(Boolean).length} 词)
             </Button>
           </div>
         )}
@@ -406,6 +408,7 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
           disabled={!text.trim()}
           className="w-full"
           size="lg"
+          style={getBtnStyle("optimizer:submit")}
         >
           <Send className="mr-2 h-4 w-4" />
           开始{intensity === "light" ? "轻度" : intensity === "medium" ? "中度" : "深度"}优化

@@ -14,6 +14,7 @@ import { ShareDialog } from "@/components/ShareDialog";
 import type { GrammarNote, VocabNote, SharedContentType } from "@/types";
 import { toast } from "sonner";
 import Link from "next/link";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { WritingRecord } from "@/types";
 
 const styleLabels: Record<string, string> = {
@@ -107,7 +108,7 @@ export default function HistoryPage() {
             <Sparkles className="h-4 w-4 mr-1" />
             优化记录
           </Link>
-          <Link href="/write" className={buttonVariants({ size: "sm" })}>
+          <Link href="/write" className={buttonVariants({ size: "sm" })} style={getBtnStyle("history:new-write")}>
             新建翻译
           </Link>
         </div>
@@ -121,7 +122,7 @@ export default function HistoryPage() {
             <p className="text-muted-foreground text-sm mb-4">
               开始你的第一次翻译吧
             </p>
-            <Link href="/write" className={buttonVariants()}>
+            <Link href="/write" className={buttonVariants()} style={getBtnStyle("history:start-write")}>
               开始写作
             </Link>
           </CardContent>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { checkFriendRequestLimit } from "@/lib/rate-limit-friend";
+import { checkFriendRateLimit } from "@/lib/rate-limit-friend";
 
 const CACHE_HEADER = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
 
@@ -83,10 +83,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "不能添加自己为好友" }, { status: 400 });
   }
 
-  // 频率限制
-  const limit = checkFriendRequestLimit(userId);
+  // 频率限制（数据库持久化，防 serverless 冷启动绕过）
+  const limit = await checkFriendRateLimit(userId);
   if (!limit.allowed) {
-    return NextResponse.json({ error: "操作太频繁，请稍后再试" }, { status: 429 });
+    return NextResponse.json(
+      { error: "操作太频繁，请稍后再试" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
   }
 
   // 检查目标用户是否存在

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { ArrowRight, Languages, BookOpen, FileCheck, PenLine } from "lucide-react";
+import { PenLine, Wrench } from "lucide-react";
+import { getBtnStyle } from "@/lib/button-colors";
 
 export function Hero() {
   return (
@@ -11,8 +12,17 @@ export function Hero() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-4 py-20 md:py-28">
+      <div className="container mx-auto px-4 pt-16 md:pt-24 pb-20 md:pb-28">
         <div className="mx-auto max-w-3xl text-center">
+          {/* 品牌标题图（透明背景，暗色模式自动反色） */}
+          <div className="mb-8 flex justify-center">
+            <img
+              src="/title-logo-transparent.png"
+              alt="Rdaily English"
+              className="w-full max-w-[640px] h-auto dark:invert"
+            />
+          </div>
+
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight mb-6">
             用地道英语
             <span className="text-primary block">表达你的想法</span>
@@ -25,50 +35,21 @@ export function Hero() {
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
             <Link
-              href="/write"
+              href="/start-writing"
               className={buttonVariants({ size: "lg", className: "text-base px-8 py-6 h-auto gap-3" })}
+              style={getBtnStyle("hero:write")}
             >
               <PenLine className="h-5 w-5" />
-              中文写作翻译
+              开始写作
             </Link>
             <Link
-              href="/correct"
+              href="/tools"
               className={buttonVariants({ variant: "outline", size: "lg", className: "text-base px-8 py-6 h-auto gap-3" })}
+              style={getBtnStyle("hero:correct")}
             >
-              <FileCheck className="h-5 w-5" />
-              英文文章批改
+              <Wrench className="h-5 w-5" />
+              小工具
             </Link>
-          </div>
-
-          {/* 功能亮点 */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16">
-            <div className="flex flex-col items-center gap-2 p-4 rounded-lg">
-              <div className="p-2 rounded-full bg-primary/10">
-                <Languages className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-medium">智能翻译</h3>
-              <p className="text-sm text-muted-foreground">
-                支持学术、商务、日常三种风格
-              </p>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-4 rounded-lg">
-              <div className="p-2 rounded-full bg-primary/10">
-                <BookOpen className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-medium">语法分析</h3>
-              <p className="text-sm text-muted-foreground">
-                标注关键语法点，附带例句和常见错误
-              </p>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-4 rounded-lg">
-              <div className="p-2 rounded-full bg-primary/10">
-                <FileCheck className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-medium">文章批改</h3>
-              <p className="text-sm text-muted-foreground">
-                按考试标准评分，逐句批注优化建议
-              </p>
-            </div>
           </div>
         </div>
       </div>

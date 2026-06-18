@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Printer, Languages, ArrowLeftRight } from "lucide-react";
 import { printVocab, type PrintFormat, type PrintOptions } from "@/lib/print-vocab";
+import { getBtnStyle } from "@/lib/button-colors";
 
 interface VocabPrintDialogProps {
   open: boolean;
@@ -189,7 +190,7 @@ export function VocabPrintDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={handlePrint} disabled={words.length === 0}>
+          <Button onClick={handlePrint} disabled={words.length === 0} style={getBtnStyle("vocabprint:print")}>
             <Printer className="mr-2 h-4 w-4" />
             打印
           </Button>

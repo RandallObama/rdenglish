@@ -1,53 +1,13 @@
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY || "",
-  baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
-});
-
-interface CommonMistake {
-  error: string;
-  correction: string;
-  explanation: string;
-}
-
-interface CommonError {
-  error: string;
-  correction: string;
-  explanation: string;
-}
-
-interface GrammarNote {
-  point: string;
-  level: string;
-  function: string;
-  structure: string;
-  explanation: string;
-  examples: string[];
-  commonMistakes: CommonMistake[];
-  examTip?: string;
-}
-
-interface VocabNote {
-  word: string;
-  chinese: string;
-  collocations: string[];
-  synonyms: string[];
-  level: string;
-  usage: string;
-  examples: string[];
-  commonErrors?: CommonError[];
-  examFocus?: string;
-}
-
-interface TranslationResult {
-  english: string;
-  grammarNotes: GrammarNote[];
-  vocabNotes: VocabNote[];
-}
-
-type ExamType = "middle" | "high" | "cet4" | "cet6" | "ielts" | "general" | "literary";
-type WritingStyle = "academic" | "business" | "daily";
+import { aiClient } from "@/lib/ai-client";
+import type {
+  CommonMistake,
+  CommonError,
+  GrammarNote,
+  VocabNote,
+  TranslationResult,
+  WritingStyle,
+  ExamType,
+} from "@/types";
 
 const examConfig: Record<
   ExamType,
@@ -165,7 +125,7 @@ export async function translateAndAnalyze(
   const exam = examConfig[examType];
   const systemPrompt = makeTranslateSystemPrompt(exam, styleMap[style]);
 
-  const response = await client.chat.completions.create({
+  const response = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },
@@ -196,12 +156,11 @@ export async function* streamTranslateAndAnalyze(
   chineseText: string,
   style: WritingStyle = "daily",
   examType: ExamType = "general"
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
+): AsyncGenerator<string, TranslationResult, unknown> {
   const exam = examConfig[examType];
   const systemPrompt = makeTranslateSystemPrompt(exam, styleMap[style]);
 
-  const stream = await client.chat.completions.create({
+  const stream = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },
@@ -261,7 +220,7 @@ export async function cowriteContinue(
 - 长度与用户上文的句子长度相匹配
 - 只返回 JSON，不要其他文字`;
 
-  const response = await client.chat.completions.create({
+  const response = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },
@@ -295,14 +254,13 @@ export async function cowriteContinue(
 export async function* streamCowriteContinue(
   existingText: string,
   style: WritingStyle = "daily"
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
+): AsyncGenerator<string, { suggestions: string[] }, unknown> {
   const styleName = styleMap[style];
 
   const systemPrompt = `你是一位专业的中文写作助手，擅长${styleName}写作。根据已有内容生成2个不同的续写方向，每个1-2句话。
 只返回JSON: {"suggestions": ["方向A的内容", "方向B的内容"]}`;
 
-  const stream = await client.chat.completions.create({
+  const stream = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },
@@ -369,7 +327,7 @@ Output format (JSON only, no markdown):
   "suggestions": ["Continuation A", "Continuation B"]
 }`;
 
-  const response = await client.chat.completions.create({
+  const response = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },
@@ -403,8 +361,7 @@ Output format (JSON only, no markdown):
 export async function* streamCowriteContinueEn(
   existingText: string,
   style: string = "daily"
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
+): AsyncGenerator<string, { suggestions: string[] }, unknown> {
   const styleGuide: Record<string, string> = {
     daily: "自然的日常英语",
     academic: "正式的学术英语",
@@ -418,7 +375,7 @@ export async function* streamCowriteContinueEn(
   const systemPrompt = `You are a professional English writing coach. Based on the existing English text, generate 2 different continuations (1-2 sentences each) in ${guide} style.
 Output only JSON: {"suggestions": ["Direction A", "Direction B"]}`;
 
-  const stream = await client.chat.completions.create({
+  const stream = await aiClient.chat.completions.create({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },

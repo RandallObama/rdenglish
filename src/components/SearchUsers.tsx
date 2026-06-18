@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Search, UserPlus, UserCheck, Users } from "lucide-react";
 import { toast } from "sonner";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { UserSearchResult } from "@/types";
 
 export function SearchUsers() {
@@ -130,6 +131,7 @@ export function SearchUsers() {
                         size="sm"
                         disabled={addingIds.has(user.id)}
                         onClick={() => handleAdd(user)}
+                        style={getBtnStyle("search:add-friend")}
                       >
                         {addingIds.has(user.id) ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

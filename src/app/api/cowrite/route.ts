@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { cowriteContinue, streamCowriteContinue, cowriteContinueEn, streamCowriteContinueEn } from "@/lib/deepseek";
-import { consumeUsage } from "@/lib/rate-limit";
+import { consumeUsage, checkAiRpm } from "@/lib/rate-limit";
 import { createSSEResponse } from "@/lib/stream";
 import type { WritingStyle } from "@/types";
 
@@ -17,6 +17,16 @@ export async function POST(request: Request) {
   }
 
   const userId = session.user.id;
+
+  // 每分钟 AI 请求节流（所有用户，含 Pro）
+  const rpm = checkAiRpm(userId);
+  if (!rpm.allowed) {
+    return new Response(
+      JSON.stringify({ error: `请求过于频繁，请 ${rpm.retryAfter} 秒后再试` }),
+      { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rpm.retryAfter) } }
+    );
+  }
+
   const usage = await consumeUsage(userId);
   if (!usage.allowed) {
     return new Response(
@@ -36,9 +46,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (text.length > 2000) {
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount > 1200) {
       return new Response(
-        JSON.stringify({ error: "文本过长，请限制在 2000 字以内" }),
+        JSON.stringify({ error: "文本过长，请限制在 1200 词以内" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }

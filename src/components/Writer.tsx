@@ -17,6 +17,7 @@ import { LoadingProgress } from "@/components/LoadingProgress";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { readSSE } from "@/lib/stream";
+import { getBtnStyle } from "@/lib/button-colors";
 import type { GrammarNote, VocabNote, ExamType, WritingStyle } from "@/types";
 
 interface WriterProps {
@@ -227,7 +228,7 @@ export function Writer({ onResult, onError }: WriterProps) {
         </div>
 
         <Badge variant="outline" className="text-xs h-8">
-          {text.length}/2000 字
+          {text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0}/1200 词
         </Badge>
 
         {/* 续写按钮 */}
@@ -237,6 +238,7 @@ export function Writer({ onResult, onError }: WriterProps) {
           onClick={handleCowrite}
           disabled={!text.trim() || cowriteLoading}
           className="h-8 text-xs gap-1.5 ml-auto"
+          style={getBtnStyle("writer:cowrite")}
         >
           {cowriteLoading ? (
             <>
@@ -259,7 +261,6 @@ export function Writer({ onResult, onError }: WriterProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           className="min-h-[180px] sm:min-h-[200px] text-base resize-y"
-          maxLength={2000}
         />
 
         {/* 续写建议弹出卡片 */}
@@ -308,6 +309,7 @@ export function Writer({ onResult, onError }: WriterProps) {
           disabled={!text.trim()}
           className="w-full"
           size="lg"
+          style={getBtnStyle("writer:submit")}
         >
           <Send className="mr-2 h-4 w-4" />
           开始翻译与分析

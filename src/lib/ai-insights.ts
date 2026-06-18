@@ -1,10 +1,5 @@
-import OpenAI from "openai";
+import { aiClient } from "@/lib/ai-client";
 import type { ReportData } from "@/types";
-
-const client = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY || "",
-  baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
-});
 
 const INSIGHTS_SYSTEM_PROMPT = `你是一位专业、亲切的英语学习导师。用户会给你一份他/她近期的英语学习数据报告，请你根据数据生成一份个性化的学习总结和建议。
 
@@ -78,7 +73,7 @@ export async function generateReportInsights(reportData: ReportData): Promise<st
   const userContent = `以下是我的英语学习数据报告（${summary.period.type === "week" ? "本周" : "本月"}），请帮我分析并给出建议：\n\n${JSON.stringify(summary, null, 2)}`;
 
   try {
-    const response = await client.chat.completions.create({
+    const response = await aiClient.chat.completions.create({
       model: "deepseek-chat",
       messages: [
         { role: "system", content: INSIGHTS_SYSTEM_PROMPT },
