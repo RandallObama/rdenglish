@@ -309,25 +309,11 @@ export interface FriendRequestData {
   createdAt: string;
 }
 
-export type SharedContentType = "writing" | "correction" | "savedWord" | "savedGrammar";
-
-export interface SharedContentItem {
-  id: string;
-  senderId: string;
-  senderName: string | null;
-  receiverId: string;
-  receiverName: string | null;
-  contentType: SharedContentType;
-  contentId: string;
-  message: string | null;
-  read: boolean;
-  createdAt: string;
-}
+export type ShareContentType = "writing" | "correction" | "savedWord" | "savedGrammar";
 
 export interface FriendStats {
   totalFriends: number;
   pendingRequests: number;
-  unreadShares: number;
   unreadMessages: number;
 }
 
@@ -338,6 +324,8 @@ export interface MessageItem {
   senderId: string;
   receiverId: string;
   content: string;
+  contentType?: string;  // "writing" | "correction" | "savedWord" | "savedGrammar"
+  contentId?: string;
   read: boolean;
   createdAt: string;
 }

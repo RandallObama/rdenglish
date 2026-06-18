@@ -4,11 +4,10 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Users, UserPlus, Search, Inbox } from "lucide-react";
+import { Loader2, Users, UserPlus, Search } from "lucide-react";
 import { FriendsList } from "@/components/FriendsList";
 import { FriendRequests } from "@/components/FriendRequests";
 import { SearchUsers } from "@/components/SearchUsers";
-import { SharedInbox } from "@/components/SharedInbox";
 
 export default function FriendsPage() {
   const { data: session, status } = useSession();
@@ -44,7 +43,7 @@ export default function FriendsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="list" className="gap-1">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">好友列表</span>
@@ -56,10 +55,6 @@ export default function FriendsPage() {
           <TabsTrigger value="search" className="gap-1">
             <Search className="h-4 w-4" />
             <span className="hidden sm:inline">搜索好友</span>
-          </TabsTrigger>
-          <TabsTrigger value="inbox" className="gap-1">
-            <Inbox className="h-4 w-4" />
-            <span className="hidden sm:inline">收件箱</span>
           </TabsTrigger>
         </TabsList>
 
@@ -73,10 +68,6 @@ export default function FriendsPage() {
 
         <TabsContent value="search">
           <SearchUsers />
-        </TabsContent>
-
-        <TabsContent value="inbox">
-          <SharedInbox />
         </TabsContent>
       </Tabs>
     </div>

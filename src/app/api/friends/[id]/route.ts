@@ -23,16 +23,21 @@ export async function DELETE(
     return NextResponse.json({ error: "无权操作" }, { status: 403 });
   }
 
-  // 同时删除双向的分享记录
+  const friendId = friendship.requesterId === userId ? friendship.addresseeId : friendship.requesterId;
+
+  // 同时删除双向的消息记录
   await prisma.$transaction([
-    prisma.sharedContent.deleteMany({
+    prisma.message.deleteMany({
       where: {
         OR: [
-          { senderId: userId, receiverId: friendship.requesterId === userId ? friendship.addresseeId : friendship.requesterId },
-          { senderId: friendship.requesterId === userId ? friendship.addresseeId : friendship.requesterId, receiverId: userId },
+          { senderId: userId, receiverId: friendId },
+          { senderId: friendId, receiverId: userId },
         ],
       },
     }),
+    // 清理可能残留的旧分享记录
+    prisma.$executeRawUnsafe(`DELETE FROM SharedContent WHERE (senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?)`,
+      userId, friendId, friendId, userId),
     prisma.friendship.delete({ where: { id } }),
   ]);
 

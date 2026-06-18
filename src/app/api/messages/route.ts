@@ -40,9 +40,18 @@ export async function GET() {
   for (const m of messages) {
     const partner = m.senderId === userId ? m.receiverId : m.senderId;
     if (!conversationMap.has(partner)) {
+      const typeLabel: Record<string, string> = {
+        writing: "[翻译]", correction: "[批改]",
+        savedWord: "[生词]", savedGrammar: "[语法]",
+      };
+      const preview = m.content
+        ? (m.content.length > 50 ? m.content.slice(0, 50) + "…" : m.content)
+        : m.contentType
+        ? (typeLabel[m.contentType] || "[分享]")
+        : "";
       conversationMap.set(partner, {
         friendId: partner,
-        lastMessage: m.content.length > 50 ? m.content.slice(0, 50) + "…" : m.content,
+        lastMessage: preview,
         lastMessageAt: m.createdAt.toISOString(),
         unreadCount: unreadCounts.get(partner) || 0,
       });
@@ -80,14 +89,14 @@ export async function POST(request: Request) {
   }
 
   const userId = session.user.id;
-  let body: { receiverId?: string; content?: string };
+  let body: { receiverId?: string; content?: string; contentType?: string; contentId?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "请求格式无效" }, { status: 400 });
   }
 
-  const { receiverId, content } = body;
+  const { receiverId, content, contentType, contentId } = body;
 
   if (!receiverId || typeof receiverId !== "string") {
     return NextResponse.json({ error: "缺少接收者" }, { status: 400 });
@@ -95,10 +104,23 @@ export async function POST(request: Request) {
   if (receiverId === userId) {
     return NextResponse.json({ error: "不能给自己发消息" }, { status: 400 });
   }
-  if (!content || typeof content !== "string" || !content.trim()) {
+
+  // 分享内容时必须有 contentType 和 contentId
+  if (contentType && !contentId) {
+    return NextResponse.json({ error: "缺少分享内容ID" }, { status: 400 });
+  }
+  if (contentId && !contentType) {
+    return NextResponse.json({ error: "缺少分享内容类型" }, { status: 400 });
+  }
+  if (contentType && !["writing", "correction", "savedWord", "savedGrammar"].includes(contentType)) {
+    return NextResponse.json({ error: "无效的分享类型" }, { status: 400 });
+  }
+
+  // 纯文字消息必须有内容，分享内容时消息可为空
+  if (!contentType && (!content || typeof content !== "string" || !content.trim())) {
     return NextResponse.json({ error: "消息内容不能为空" }, { status: 400 });
   }
-  if (content.length > 2000) {
+  if (content && content.length > 2000) {
     return NextResponse.json({ error: "消息不能超过2000字" }, { status: 400 });
   }
 
@@ -116,11 +138,43 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "只能给好友发消息" }, { status: 403 });
   }
 
+  // 分享内容时验证所有权
+  if (contentType && contentId) {
+    let contentExists = false;
+    switch (contentType) {
+      case "writing": {
+        const w = await prisma.writing.findUnique({ where: { id: contentId } });
+        contentExists = !!w && w.userId === userId;
+        break;
+      }
+      case "correction": {
+        const c = await prisma.correction.findUnique({ where: { id: contentId } });
+        contentExists = !!c && c.userId === userId;
+        break;
+      }
+      case "savedWord": {
+        const w = await prisma.savedWord.findUnique({ where: { id: contentId } });
+        contentExists = !!w && w.userId === userId;
+        break;
+      }
+      case "savedGrammar": {
+        const g = await prisma.savedGrammar.findUnique({ where: { id: contentId } });
+        contentExists = !!g && g.userId === userId;
+        break;
+      }
+    }
+    if (!contentExists) {
+      return NextResponse.json({ error: "分享内容不存在" }, { status: 404 });
+    }
+  }
+
   const message = await prisma.message.create({
     data: {
       senderId: userId,
       receiverId,
-      content: content.trim(),
+      content: (content || "").trim(),
+      contentType: contentType || null,
+      contentId: contentId || null,
     },
   });
 

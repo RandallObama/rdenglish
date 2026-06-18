@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { ShareDialog } from "@/components/ShareDialog";
 import { getBtnStyle } from "@/lib/button-colors";
-import type { CorrectionRecord, ExamType, SharedContentType } from "@/types";
+import type { CorrectionRecord, ExamType, ShareContentType } from "@/types";
 
 const examLabels: Record<ExamType, string> = {
   general: "通用",
@@ -44,7 +44,7 @@ export default function CorrectionHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: ShareContentType } | null>(null);
 
   const fetchHistory = useCallback(async (pageNum: number, append = false) => {
     const setLoadingState = append ? setLoadingMore : setLoading;

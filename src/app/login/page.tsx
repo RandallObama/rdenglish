@@ -19,10 +19,12 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showResetLink, setShowResetLink] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setShowResetLink(false);
     setLoading(true);
 
     try {
@@ -34,8 +36,16 @@ function LoginForm() {
 
       setLoading(false);
 
+      // 检查是否触发了密码重置提示
+      // CredentialsSignin with code=RESET_NEEDED 会出现在 response 的 redirect URL 中
+      const resultStr = JSON.stringify(result);
+      if (resultStr.includes("RESET_NEEDED")) {
+        setError("密码错误，已连续失败 3 次。如需重置密码，请点击下方链接");
+        setShowResetLink(true);
+        return;
+      }
+
       if (result?.error) {
-        // 显示真实错误信息，帮助定位问题
         setError(`登录失败：${result.error}`);
         return;
       }
@@ -44,7 +54,7 @@ function LoginForm() {
         router.push(callbackUrl);
         router.refresh();
       } else {
-        setError(`登录异常：${JSON.stringify(result)}`);
+        setError(`登录异常：${resultStr}`);
       }
     } catch (err: any) {
       setLoading(false);
@@ -93,6 +103,17 @@ function LoginForm() {
 
           {error && (
             <p className="text-sm text-destructive text-center">{error}</p>
+          )}
+
+          {showResetLink && (
+            <p className="text-sm text-center">
+              <Link
+                href="/reset-password"
+                className="text-primary hover:underline font-medium"
+              >
+                忘记密码？点击重置
+              </Link>
+            </p>
           )}
 
           <Button type="submit" className="w-full" disabled={loading} style={getBtnStyle("login:submit")}>

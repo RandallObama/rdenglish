@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { CredentialsSignin } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import type { Provider } from "next-auth/providers";
@@ -105,11 +106,28 @@ const providers: Provider[] = [
 
       const isValid = await bcrypt.compare(password, user.passwordHash);
       if (!isValid) {
+        // 连续失败计数（原子递增）
+        const updated = await prisma.user.update({
+          where: { id: user.id },
+          data: { failedLoginAttempts: { increment: 1 } },
+          select: { failedLoginAttempts: true },
+        });
+
+        if (updated.failedLoginAttempts >= 3) {
+          // Throw CredentialsSignin with custom code so frontend can detect it
+          const err = new CredentialsSignin();
+          err.code = "RESET_NEEDED";
+          throw err;
+        }
         return null;
       }
 
-      // 登录成功，清除限速记录
+      // 登录成功，清除限速记录 + 重置连续失败计数
       await clearLoginRateLimit(identifier);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0 },
+      });
 
       return {
         id: user.id,

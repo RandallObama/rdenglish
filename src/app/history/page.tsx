@@ -11,7 +11,7 @@ import { Loader2, Trash2, BookOpen, Lightbulb, Clock, ChevronDown, ChevronRight,
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { SaveButton } from "@/components/SaveButton";
 import { ShareDialog } from "@/components/ShareDialog";
-import type { GrammarNote, VocabNote, SharedContentType } from "@/types";
+import type { GrammarNote, VocabNote, ShareContentType } from "@/types";
 import { toast } from "sonner";
 import Link from "next/link";
 import { getBtnStyle } from "@/lib/button-colors";
@@ -34,7 +34,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: ShareContentType } | null>(null);
 
   const fetchHistory = useCallback(async (pageNum: number, append = false) => {
     const setLoadingState = append ? setLoadingMore : setLoading;

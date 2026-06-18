@@ -24,7 +24,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShareDialog } from "@/components/ShareDialog";
-import type { GrammarNote, VocabNote, SharedContentType } from "@/types";
+import type { GrammarNote, VocabNote, ShareContentType } from "@/types";
 
 interface ResultCardProps {
   resultId?: string;
@@ -48,7 +48,7 @@ export function ResultCard({
   remaining,
 }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
-  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: ShareContentType } | null>(null);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(english);

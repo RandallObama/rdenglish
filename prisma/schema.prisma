@@ -27,8 +27,6 @@ model User {
   savedGrammars     SavedGrammar[]
   sentRequests      Friendship[]    @relation("SentRequests")
   receivedRequests  Friendship[]    @relation("ReceivedRequests")
-  sentShares         SharedContent[]   @relation("SentShares")
-  receivedShares     SharedContent[]   @relation("ReceivedShares")
   sentMessages       Message[]         @relation("SentMessages")
   receivedMessages   Message[]         @relation("ReceivedMessages")
   createdWordbooks   Wordbook[]        @relation("CreatedWordbooks")
@@ -166,33 +164,19 @@ model Friendship {
 }
 
 model Message {
-  id         String   @id @default(cuid())
-  senderId   String
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId String
-  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
-  content    String   // 1~2000 字符，API 层校验
-  read       Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  @@index([receiverId, read])
-  @@index([senderId, receiverId, createdAt])
-}
-
-model SharedContent {
   id          String   @id @default(cuid())
   senderId    String
-  sender      User     @relation("SentShares", fields: [senderId], references: [id], onDelete: Cascade)
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   receiverId  String
-  receiver    User     @relation("ReceivedShares", fields: [receiverId], references: [id], onDelete: Cascade)
-  contentType String   // "writing" | "correction" | "savedWord" | "savedGrammar"
-  contentId   String   // 原始记录 ID
-  message     String?  // 发送者留言
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content     String   // 1~2000 字符，API 层校验
+  contentType String?  // "writing" | "correction" | "savedWord" | "savedGrammar" — 分享内容的类型
+  contentId   String?  // 原始记录 ID（分享内容时使用）
   read        Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   @@index([receiverId, read])
-  @@index([senderId, createdAt])
+  @@index([senderId, receiverId, createdAt])
 }
 
 model Wordbook {

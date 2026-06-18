@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ShareDialog } from "@/components/ShareDialog";
-import type { CorrectionResult as CorrectionResultType, ExamType, SharedContentType } from "@/types";
+import type { CorrectionResult as CorrectionResultType, ExamType, ShareContentType } from "@/types";
 
 interface Props {
   result: CorrectionResultType;
@@ -75,7 +75,7 @@ function ScoreBar({ label, score, max }: { label: string; score: number; max: nu
 }
 
 export function CorrectionResult({ result, remaining, correctionId }: Props) {
-  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: ShareContentType } | null>(null);
   return (
     <Card className="mt-6">
       <CardContent className="p-4 md:p-6 space-y-6">

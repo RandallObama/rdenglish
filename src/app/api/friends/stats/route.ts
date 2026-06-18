@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 const CACHE_HEADER = { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" };
 
-/** 获取好友统计（好友数、待处理请求数、未读分享数） */
+/** 获取好友统计（好友数、待处理请求数、未读消息数） */
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -13,7 +13,7 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [totalFriends, pendingRequests, unreadShares, unreadMessages] = await Promise.all([
+  const [totalFriends, pendingRequests, unreadMessages] = await Promise.all([
     prisma.friendship.count({
       where: {
         status: "accepted",
@@ -23,16 +23,13 @@ export async function GET() {
     prisma.friendship.count({
       where: { addresseeId: userId, status: "pending" },
     }),
-    prisma.sharedContent.count({
-      where: { receiverId: userId, read: false },
-    }),
     prisma.message.count({
       where: { receiverId: userId, read: false },
     }),
   ]);
 
   return NextResponse.json(
-    { totalFriends, pendingRequests, unreadShares, unreadMessages },
+    { totalFriends, pendingRequests, unreadMessages },
     { headers: CACHE_HEADER }
   );
 }

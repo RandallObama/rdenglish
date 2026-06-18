@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { ShareDialog } from "@/components/ShareDialog";
 import { getBtnStyle } from "@/lib/button-colors";
-import type { SavedWordItem, SavedGrammarItem, SharedContentType } from "@/types";
+import type { SavedWordItem, SavedGrammarItem, ShareContentType } from "@/types";
 
 const levelVariant = {
   "基础": "secondary" as const,
@@ -47,7 +47,7 @@ export function NotebookList({
   onDeleteGrammar,
 }: NotebookListProps) {
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
-  const [shareTarget, setShareTarget] = useState<{ id: string; type: SharedContentType } | null>(null);
+  const [shareTarget, setShareTarget] = useState<{ id: string; type: ShareContentType } | null>(null);
 
   if (words.length === 0 && grammars.length === 0) {
     return (

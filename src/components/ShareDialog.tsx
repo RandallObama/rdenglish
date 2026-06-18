@@ -15,17 +15,17 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Share2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { getBtnStyle } from "@/lib/button-colors";
-import type { FriendItem, SharedContentType } from "@/types";
+import type { FriendItem, ShareContentType } from "@/types";
 
 interface ShareDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  contentType: SharedContentType;
+  contentType: ShareContentType;
   contentId: string;
   onSuccess?: () => void;
 }
 
-const typeLabels: Record<SharedContentType, string> = {
+const typeLabels: Record<ShareContentType, string> = {
   writing: "翻译",
   correction: "批改",
   savedWord: "生词",
@@ -71,19 +71,19 @@ export function ShareDialog({
     if (!selectedId) return;
     setSharing(true);
     try {
-      const res = await fetch("/api/friends/share", {
+      const res = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           receiverId: selectedId,
+          content: message.trim() || "",
           contentType,
           contentId,
-          message: message.trim() || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "分享失败");
-      toast.success("已分享给好友");
+      toast.success("已通过聊天发送给好友");
       onSuccess?.();
       onOpenChange(false);
     } catch (e) {

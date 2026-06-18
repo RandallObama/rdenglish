@@ -14,6 +14,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, MessageCircle, ArrowLeft, Send, Users, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useChat } from "@/components/ChatContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { FileText, BookOpen } from "lucide-react";
 import type { ConversationItem, MessageItem } from "@/types";
 
 export function ChatPanel() {
@@ -31,6 +39,11 @@ export function ChatPanel() {
   const [msgLoading, setMsgLoading] = useState(false);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
+  const [viewingContent, setViewingContent] = useState<{
+    contentType: string;
+    content: Record<string, unknown> | null;
+    loading: boolean;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -219,6 +232,55 @@ export function ChatPanel() {
     return d.toLocaleDateString("zh-CN");
   };
 
+  // 查看分享内容详情
+  const handleViewContent = async (msgId: string, contentType: string) => {
+    setViewingContent({ contentType, content: null, loading: true });
+    try {
+      const res = await fetch(`/api/messages/content?id=${msgId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setViewingContent({ contentType, content: data.content, loading: false });
+      } else {
+        setViewingContent({ contentType, content: null, loading: false });
+      }
+    } catch {
+      setViewingContent({ contentType, content: null, loading: false });
+    }
+  };
+
+  // 格式化分享内容为文本
+  const formatContentDetail = (type: string, data: Record<string, unknown> | null): string => {
+    if (!data) return "内容已被删除或不可用";
+    switch (type) {
+      case "writing":
+        return `原文：${data.sourceText || ""}\n\n译文：${data.resultText || ""}`;
+      case "correction":
+        return `作文：${data.essayText || ""}\n\n总分：${data.totalScore || ""}/${data.maxScore || ""}\n\n总评：${data.overallComment || ""}`;
+      case "savedWord": {
+        let r = `单词：${data.word || ""}\n释义：${data.chinese || ""}`;
+        if (data.level) r += `\n等级：${data.level}`;
+        if (data.usage) r += `\n用法：${data.usage}`;
+        return r;
+      }
+      case "savedGrammar": {
+        let r = `语法点：${data.point || ""}`;
+        if (data.level) r += `\n等级：${data.level}`;
+        if (data.structure) r += `\n结构：${data.structure}`;
+        if (data.explanation) r += `\n解释：${data.explanation}`;
+        return r;
+      }
+      default:
+        return "未知内容类型";
+    }
+  };
+
+  const contentTypeLabel: Record<string, string> = {
+    writing: "翻译",
+    correction: "批改",
+    savedWord: "生词",
+    savedGrammar: "语法",
+  };
+
   if (!session) return null;
 
   return (
@@ -346,19 +408,55 @@ export function ChatPanel() {
                 ) : (
                   messages.map((msg) => {
                     const isMe = msg.senderId === userId;
+                    const isShared = !!msg.contentType;
+
                     return (
                       <div
                         key={msg.id}
                         className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                       >
-                        <div
-                          className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm break-words ${
-                            isMe
-                              ? "bg-primary text-primary-foreground rounded-br-md"
-                              : "bg-muted text-foreground rounded-bl-md"
-                          }`}
-                        >
-                          {msg.content}
+                        <div className={`max-w-[80%] ${isShared ? "" : ""}`}>
+                          {/* 文字消息（如果有内容） */}
+                          {msg.content && (
+                            <div
+                              className={`rounded-2xl px-3.5 py-2 text-sm break-words mb-1 ${
+                                isMe
+                                  ? "bg-primary text-primary-foreground rounded-br-md"
+                                  : "bg-muted text-foreground rounded-bl-md"
+                              }`}
+                            >
+                              {msg.content}
+                            </div>
+                          )}
+
+                          {/* 分享内容卡片 */}
+                          {isShared && (
+                            <button
+                              type="button"
+                              className={`w-full text-left rounded-2xl border-2 px-3.5 py-2.5 transition-colors ${
+                                isMe
+                                  ? "border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-br-md"
+                                  : "border-border bg-card hover:bg-muted/50 rounded-bl-md"
+                              }`}
+                              onClick={() =>
+                                handleViewContent(msg.id, msg.contentType!)
+                              }
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                {msg.contentType === "savedWord" || msg.contentType === "savedGrammar" ? (
+                                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <FileText className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="font-medium text-sm">
+                                  {contentTypeLabel[msg.contentType!] || "分享内容"}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                点击查看详情
+                              </p>
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -402,6 +500,33 @@ export function ChatPanel() {
           )}
         </div>
       </SheetContent>
+
+      {/* 分享内容详情弹窗 */}
+      <Dialog open={!!viewingContent} onOpenChange={() => setViewingContent(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {viewingContent && (
+                <Badge variant="outline">
+                  {contentTypeLabel[viewingContent.contentType] || "分享内容"}
+                </Badge>
+              )}
+              分享内容详情
+            </DialogTitle>
+          </DialogHeader>
+          {viewingContent?.loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="bg-muted/50 rounded-lg p-4 text-sm whitespace-pre-wrap break-words">
+              {viewingContent
+                ? formatContentDetail(viewingContent.contentType, viewingContent.content)
+                : "暂无内容"}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }

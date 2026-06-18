@@ -57,6 +57,8 @@ export async function GET(
     senderId: m.senderId,
     receiverId: m.receiverId,
     content: m.content,
+    contentType: m.contentType,
+    contentId: m.contentId,
     read: m.read,
     createdAt: m.createdAt.toISOString(),
   }));

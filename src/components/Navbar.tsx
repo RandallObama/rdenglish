@@ -58,7 +58,7 @@ export function Navbar() {
       .then((res) => res.json())
       .then((data) => {
         if (data.pendingRequests !== undefined) {
-          setFriendBadge(data.pendingRequests + data.unreadShares);
+          setFriendBadge(data.pendingRequests);
         }
         if (data.unreadMessages !== undefined) {
           setUnreadMessages(data.unreadMessages);
