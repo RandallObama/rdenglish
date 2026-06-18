@@ -42,10 +42,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "请输入文本" }, { status: 400 });
     }
 
-    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-    if (wordCount > 1200) {
+    if (text.length > 1200) {
       return NextResponse.json(
-        { error: "文本过长，请限制在 1200 词以内" },
+        { error: "文本过长，请限制在 1200 字以内" },
         { status: 400 }
       );
     }

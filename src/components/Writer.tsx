@@ -228,7 +228,7 @@ export function Writer({ onResult, onError }: WriterProps) {
         </div>
 
         <Badge variant="outline" className="text-xs h-8">
-          {text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0}/1200 词
+          {text.length}/1200 字
         </Badge>
 
         {/* 续写按钮 */}
@@ -261,6 +261,7 @@ export function Writer({ onResult, onError }: WriterProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           className="min-h-[180px] sm:min-h-[200px] text-base resize-y"
+          maxLength={1200}
         />
 
         {/* 续写建议弹出卡片 */}
