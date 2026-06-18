@@ -117,7 +117,7 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
     setSelectedRange(null);
 
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), 25000);
+    const timeoutId = setTimeout(() => abortController.abort(), 60000);
 
     try {
       const body: Record<string, unknown> = {

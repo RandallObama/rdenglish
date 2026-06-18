@@ -314,14 +314,19 @@ export async function optimizeEssay(
       { role: "user", content: userMessage },
     ],
     temperature: 0.6,
-    max_tokens: 8192,
+    max_tokens: 16384,
   });
 
   const raw = response.choices[0]?.message?.content || "";
   const jsonStr = extractJson(raw);
 
   try {
-    return JSON.parse(jsonStr) as OptimizeResult;
+    const parsed = JSON.parse(jsonStr) as OptimizeResult;
+    // 如果 AI 没有返回优化后文本，回退到原文
+    if (!parsed.optimizedText || parsed.optimizedText.trim().length === 0) {
+      parsed.optimizedText = text;
+    }
+    return parsed;
   } catch (e) {
     console.error("optimizeEssay JSON parse error:", e, "\nRaw:", raw);
     return {
@@ -329,7 +334,7 @@ export async function optimizeEssay(
       improvements: [],
       grammarNotes: [],
       vocabNotes: [],
-      highlights: "AI 返回格式异常，请稍后重试",
+      highlights: "AI 返回格式异常，请稍后重试。如持续出现，请尝试缩短文本或更换标准。",
     };
   }
 }
@@ -357,7 +362,7 @@ export async function* streamOptimizeEssay(
       { role: "user", content: userMessage },
     ],
     temperature: 0.6,
-    max_tokens: 8192,
+    max_tokens: 16384,
     stream: true,
   });
 
@@ -373,7 +378,11 @@ export async function* streamOptimizeEssay(
 
   const jsonStr = extractJson(fullContent);
   try {
-    return JSON.parse(jsonStr) as OptimizeResult;
+    const parsed = JSON.parse(jsonStr) as OptimizeResult;
+    if (!parsed.optimizedText || parsed.optimizedText.trim().length === 0) {
+      parsed.optimizedText = text;
+    }
+    return parsed;
   } catch (e) {
     console.error("streamOptimizeEssay JSON parse error:", e, "\nRaw:", fullContent);
     return {
@@ -381,7 +390,7 @@ export async function* streamOptimizeEssay(
       improvements: [],
       grammarNotes: [],
       vocabNotes: [],
-      highlights: "AI 返回格式异常，请稍后重试",
+      highlights: "AI 返回格式异常，请稍后重试。如持续出现，请尝试缩短文本或更换标准。",
     };
   }
 }

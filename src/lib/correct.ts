@@ -290,7 +290,9 @@ const examStandards: Record<ExamType, ExamStandard> = {
   literary: {
     name: "文学批评",
     maxScore: 100,
-    maxSubScores: { content: 30, structure: 25, grammar: 25, vocabulary: 20 },
+    // 映射关系（前端显示用）：
+    //   content=情节构建(30)  structure=语言风格(30)  grammar=人物场景(20)  vocabulary=主题统一(20)
+    maxSubScores: { content: 30, structure: 30, grammar: 20, vocabulary: 20 },
     criteria: "文学批评标准（满分100分），从文学创作角度评价英语写作的文学性",
     rubric: `## 文学批评评分档位表（满分100分）
 
@@ -350,7 +352,41 @@ function extractJson(raw: string): string {
 }
 
 /** 构建系统 prompt — 评分档位表占主导，确保 AI 严格按标准打分 */
-function makeCorrectSystemPrompt(standard: ExamStandard): string {
+function makeCorrectSystemPrompt(standard: ExamStandard, examType: ExamType): string {
+  const isLiterary = examType === "literary";
+
+  // 文学批评使用独立的维度映射说明
+  const scoringSteps = isLiterary
+    ? `## 第一步：逐维度评分（最重要！请反复对照档位表）
+
+文学批评的 4 个维度与 JSON 输出字段的对应关系如下（必须严格按此映射输出）：
+
+| 文学批评维度 | JSON 字段名 | 满分 |
+|---|---|---|
+| 情节构建与叙事结构 Plot & Narrative | **content** | ${standard.maxSubScores.content} |
+| 文学语言与风格 Literary Language & Style | **structure** | ${standard.maxSubScores.structure} |
+| 人物塑造与场景 Character & Setting | **grammar** | ${standard.maxSubScores.grammar} |
+| 主题深度与统一性 Theme & Organic Unity | **vocabulary** | ${standard.maxSubScores.vocabulary} |
+
+对每个维度，对照档位表确定档位和分数，然后用一句话解释打分理由：
+
+1. **情节构建与叙事结构**（输出到 content 字段）：叙事弧线是否完整？冲突是否有张力？节奏张弛如何？伏笔呼应如何？
+2. **文学语言与风格**（输出到 structure 字段）：修辞手法是否丰富得当？意象是否鲜明？措辞是否有文学质感？句式变化是否有意图？
+3. **人物塑造与场景**（输出到 grammar 字段）：人物是否立体？是否有性格弧线？场景是否沉浸感强？感官细节是否丰富？
+4. **主题深度与统一性**（输出到 vocabulary 字段）：主题是否深刻独创？各部分是否有机统一？结尾是否有共鸣或启发性？
+
+⚠️ 再次强调：**使用全分数区间**。如果文章很好——给高分（靠近满分），很差——给低分（靠近0分）。不要集中在中档。`
+    : `## 第一步：逐维度评分（最重要！请反复对照档位表）
+
+对每个维度，对照档位表确定档位和分数，然后用一句话解释打分理由：
+
+1. **内容**：这篇文章覆盖了几个要点？观点深度如何？论证是否充分？
+2. **结构**：段落划分是否合理？衔接词使用如何？逻辑是否连贯？
+3. **语法**：最大亮点是什么（如有）？最突出的问题是什么？错误数量级别？
+4. **词汇**：词汇量处于哪个档位？有没有高级词汇/地道搭配？中式英语程度？
+
+⚠️ 再次强调：**使用全分数区间**。如果文章很好——给高分（靠近满分），很差——给低分（靠近0分）。不要集中在中档。`;
+
   return `你是资深英语阅卷老师，15年${standard.name}阅卷经验。请严格按以下档位表批改作文。
 
 # 评分档位表（必须严格对照）
@@ -361,16 +397,7 @@ ${standard.rubric}
 
 # 批改流程
 
-## 第一步：逐维度评分（最重要！请反复对照档位表）
-
-对每个维度，对照档位表确定档位和分数，然后用一句话解释打分理由：
-
-1. **内容**：这篇文章覆盖了几个要点？观点深度如何？论证是否充分？
-2. **结构**：段落划分是否合理？衔接词使用如何？逻辑是否连贯？
-3. **语法**：最大亮点是什么（如有）？最突出的问题是什么？错误数量级别？
-4. **词汇**：词汇量处于哪个档位？有没有高级词汇/地道搭配？中式英语程度？
-
-⚠️ 再次强调：**使用全分数区间**。如果文章很好——给高分（靠近满分），很差——给低分（靠近0分）。不要集中在中档。
+${scoringSteps}
 
 ## 第二步：逐句批注（sentenceCorrections，3-8条）
 
@@ -428,10 +455,10 @@ ${standard.rubric}
     "vocabulary": ${standard.maxSubScores.vocabulary}以内的分数
   },
   "scoringRationale": {
-    "content": "一句话解释内容得分理由",
-    "structure": "一句话解释结构得分理由",
-    "grammar": "一句话解释语法得分理由",
-    "vocabulary": "一句话解释词汇得分理由"
+    "content": "一句话解释${isLiterary ? "情节构建与叙事结构" : "内容"}得分理由",
+    "structure": "一句话解释${isLiterary ? "文学语言与风格" : "结构"}得分理由",
+    "grammar": "一句话解释${isLiterary ? "人物塑造与场景" : "语法"}得分理由",
+    "vocabulary": "一句话解释${isLiterary ? "主题深度与统一性" : "词汇"}得分理由"
   },
   "sentenceCorrections": [...],
   "grammarIssues": [...],
@@ -450,7 +477,7 @@ export async function correctEssay(
   examType: ExamType = "general"
 ): Promise<CorrectionResult> {
   const standard = examStandards[examType];
-  const systemPrompt = makeCorrectSystemPrompt(standard);
+  const systemPrompt = makeCorrectSystemPrompt(standard, examType);
 
   const response = await aiClient.chat.completions.create({
     model: "deepseek-chat",
@@ -494,7 +521,7 @@ export async function* streamCorrectEssay(
   examType: ExamType = "general"
 ): AsyncGenerator<string, CorrectionResult, unknown> {
   const standard = examStandards[examType];
-  const systemPrompt = makeCorrectSystemPrompt(standard);
+  const systemPrompt = makeCorrectSystemPrompt(standard, examType);
 
   const response = await aiClient.chat.completions.create({
     model: "deepseek-chat",
