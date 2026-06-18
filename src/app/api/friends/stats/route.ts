@@ -13,7 +13,7 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [totalFriends, pendingRequests, unreadShares] = await Promise.all([
+  const [totalFriends, pendingRequests, unreadShares, unreadMessages] = await Promise.all([
     prisma.friendship.count({
       where: {
         status: "accepted",
@@ -26,10 +26,13 @@ export async function GET() {
     prisma.sharedContent.count({
       where: { receiverId: userId, read: false },
     }),
+    prisma.message.count({
+      where: { receiverId: userId, read: false },
+    }),
   ]);
 
   return NextResponse.json(
-    { totalFriends, pendingRequests, unreadShares },
+    { totalFriends, pendingRequests, unreadShares, unreadMessages },
     { headers: CACHE_HEADER }
   );
 }

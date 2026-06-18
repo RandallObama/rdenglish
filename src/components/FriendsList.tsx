@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Loader2, UserX, UserPlus, Users } from "lucide-react";
+import { Loader2, UserX, UserPlus, Users, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getBtnStyle } from "@/lib/button-colors";
 import type { FriendItem } from "@/types";
+import { useChat } from "@/components/ChatContext";
 
 interface FriendsListProps {
   onSearchTab?: () => void;
@@ -17,6 +18,7 @@ export function FriendsList({ onSearchTab }: FriendsListProps) {
   const [friends, setFriends] = useState<FriendItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const { openChat } = useChat();
 
   const fetchFriends = useCallback(async () => {
     try {
@@ -102,20 +104,31 @@ export function FriendsList({ onSearchTab }: FriendsListProps) {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-destructive"
-              disabled={removingId === friend.id}
-              onClick={() => handleRemove(friend.id, friend.name)}
-            >
-              {removingId === friend.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <UserX className="h-4 w-4" />
-              )}
-              <span className="ml-1 hidden sm:inline">删除</span>
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => openChat(friend.friendId, friend.name)}
+                title="发消息"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span className="ml-1 hidden sm:inline">发消息</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-destructive"
+                disabled={removingId === friend.id}
+                onClick={() => handleRemove(friend.id, friend.name)}
+              >
+                {removingId === friend.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserX className="h-4 w-4" />
+                )}
+                <span className="ml-1 hidden sm:inline">删除</span>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ))}

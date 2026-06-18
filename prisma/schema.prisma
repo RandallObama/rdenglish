@@ -14,8 +14,10 @@ model User {
   passwordHash  String
   name          String?
   plan          String          @default("free")
-  dailyUsage    Int             @default(0)
-  lastUsageDate String?
+  dailyUsage          Int             @default(0)
+  lastUsageDate       String?
+  lastNicknameChange  DateTime?
+  failedLoginAttempts Int             @default(0)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   writings          Writing[]
@@ -27,6 +29,8 @@ model User {
   receivedRequests  Friendship[]    @relation("ReceivedRequests")
   sentShares         SharedContent[]   @relation("SentShares")
   receivedShares     SharedContent[]   @relation("ReceivedShares")
+  sentMessages       Message[]         @relation("SentMessages")
+  receivedMessages   Message[]         @relation("ReceivedMessages")
   createdWordbooks   Wordbook[]        @relation("CreatedWordbooks")
   wordbookMemberships WordbookMember[]
   addedWords         WordbookWord[]
@@ -159,6 +163,20 @@ model Friendship {
   @@unique([requesterId, addresseeId])
   @@index([addresseeId])
   @@index([status])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content    String   // 1~2000 字符，API 层校验
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([receiverId, read])
+  @@index([senderId, receiverId, createdAt])
 }
 
 model SharedContent {

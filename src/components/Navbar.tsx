@@ -21,9 +21,11 @@ import {
   Laptop,
   Menu,
   X,
+  MessageCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getBtnStyle } from "@/lib/button-colors";
+import { useChat } from "@/components/ChatContext";
 
 /* 桌面端分组分隔线 */
 function NavDivider() {
@@ -47,6 +49,8 @@ export function Navbar() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [friendBadge, setFriendBadge] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const { openChat } = useChat();
 
   useEffect(() => {
     if (!session) return;
@@ -55,6 +59,9 @@ export function Navbar() {
       .then((data) => {
         if (data.pendingRequests !== undefined) {
           setFriendBadge(data.pendingRequests + data.unreadShares);
+        }
+        if (data.unreadMessages !== undefined) {
+          setUnreadMessages(data.unreadMessages);
         }
       })
       .catch(() => {});
@@ -160,6 +167,24 @@ export function Navbar() {
 
         {/* ── 右侧操作区 ── */}
         <div className="flex items-center gap-3">
+          {/* 聊天小窗按钮 */}
+          {session && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => openChat()}
+              className="relative"
+              title="消息"
+            >
+              <MessageCircle className="h-[1.2rem] w-[1.2rem]" />
+              {unreadMessages > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[1rem] px-1 flex items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground leading-none">
+                  {unreadMessages > 99 ? "99+" : unreadMessages}
+                </span>
+              )}
+            </Button>
+          )}
+
           {/* 深色模式切换 */}
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -245,6 +270,9 @@ export function Navbar() {
                       {friendBadge}
                     </Badge>
                   )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/profile")}>
+                  个人中心
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/dashboard")}>
                   仪表盘
@@ -362,8 +390,32 @@ export function Navbar() {
                   </Badge>
                 )}
               </Link>
+              <button
+                className="block py-2 text-sm flex items-center gap-1 w-full text-left"
+                onClick={() => {
+                  setMenuOpen(false);
+                  openChat();
+                }}
+              >
+                消息
+                {unreadMessages > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="h-4 px-1 text-[10px] leading-none"
+                  >
+                    {unreadMessages > 99 ? "99+" : unreadMessages}
+                  </Badge>
+                )}
+              </button>
 
               <MobileSectionHeader label="更多" />
+              <Link
+                href="/profile"
+                className="block py-2 text-sm"
+                onClick={() => setMenuOpen(false)}
+              >
+                个人中心
+              </Link>
               <Link
                 href="/dashboard"
                 className="block py-2 text-sm"

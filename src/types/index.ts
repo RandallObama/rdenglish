@@ -328,6 +328,26 @@ export interface FriendStats {
   totalFriends: number;
   pendingRequests: number;
   unreadShares: number;
+  unreadMessages: number;
+}
+
+// ========== 好友小窗聊天 ==========
+
+export interface MessageItem {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface ConversationItem {
+  friendId: string;
+  friendName: string | null;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
 }
 
 // ========== 共享单词本 ==========
