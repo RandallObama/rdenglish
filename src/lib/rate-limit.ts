@@ -148,10 +148,19 @@ export async function consumeUsage(
     // ── 步骤 2：新的一天 → 重置计数为 1 ──
     // 只有在步骤 1 失败（lastUsageDate != today 或超限）时才到达这里。
     // 如果是超限的情况，lastUsageDate 已经是 today，此步 also 失败 → 正确拒绝。
+    //
+    // 重要：新用户 lastUsageDate 为 NULL。
+    // Prisma 的 { not: today } 在 libSQL 适配器下对 NULL 的匹配行为不稳定，
+    // 可能生成 "column <> value" 而非 "column <> value OR column IS NULL"，
+    // 导致新用户步骤 2 也失败，立即被判定「超限」。
+    // 显式加 OR lastUsageDate IS NULL 覆盖此情况。
     const newDay = await tx.user.updateMany({
       where: {
         id: userId,
-        lastUsageDate: { not: today },
+        OR: [
+          { lastUsageDate: { not: today } },
+          { lastUsageDate: null },
+        ],
       },
       data: {
         dailyUsage: 1,
@@ -200,9 +209,15 @@ export async function incrementUsage(userId: string): Promise<void> {
     });
 
     if (sameDay.count === 0) {
-      // 新的一天，重置为 1
+      // 新的一天，重置为 1（显式处理 NULL 避免 libSQL 适配器 NULL 匹配问题）
       await tx.user.updateMany({
-        where: { id: userId, lastUsageDate: { not: today } },
+        where: {
+          id: userId,
+          OR: [
+            { lastUsageDate: { not: today } },
+            { lastUsageDate: null },
+          ],
+        },
         data: { dailyUsage: 1, lastUsageDate: today },
       });
     }
