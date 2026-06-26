@@ -32,6 +32,7 @@ model User {
   createdWordbooks   Wordbook[]        @relation("CreatedWordbooks")
   wordbookMemberships WordbookMember[]
   addedWords         WordbookWord[]
+  challengeSubmissions ChallengeSubmission[]
 }
 
 model SmsCode {
@@ -108,6 +109,7 @@ model SavedWord {
   createdAt    DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, word])
 }
 
 model LoginAttempt {
@@ -146,6 +148,7 @@ model SavedGrammar {
   createdAt      DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, point])
 }
 
 model Friendship {
@@ -159,6 +162,7 @@ model Friendship {
   updatedAt   DateTime @updatedAt
 
   @@unique([requesterId, addresseeId])
+  @@index([requesterId])
   @@index([addresseeId])
   @@index([status])
 }
@@ -176,6 +180,7 @@ model Message {
   createdAt   DateTime @default(now())
 
   @@index([receiverId, read])
+  @@index([senderId, createdAt])
   @@index([senderId, receiverId, createdAt])
 }
 
@@ -188,6 +193,9 @@ model Wordbook {
   words     WordbookWord[]
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
+
+  @@index([creatorId])
+  @@index([updatedAt])
 }
 
 model WordbookMember {
@@ -200,6 +208,7 @@ model WordbookMember {
   joinedAt   DateTime @default(now())
 
   @@unique([wordbookId, userId])
+  @@index([userId])
 }
 
 model Optimization {
@@ -237,4 +246,48 @@ model WordbookWord {
   createdAt  DateTime @default(now())
 
   @@index([wordbookId])
+  @@index([wordbookId, createdAt])
+}
+
+model WeekendChallenge {
+  id          String   @id @default(cuid())
+  date        String   // "2026-06-27" — 周六或周日的日期
+  difficulty  String   // "easy" | "hard"
+  examType    String   // "cet4" | "ielts"
+  topic       String   // 话题分类，如 "科技影响"、"社会热点"
+  prompt      String   // 完整写作题目
+  wordLimit   Int      // easy:150, hard:250
+  timeLimit   Int      // easy:30, hard:40（分钟）
+  status      String   @default("pending_review") // "pending_review" | "approved" | "rejected"
+  source      String   @default("ai") // "ai" | "real_exam"
+
+  submissions ChallengeSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, difficulty])  // 每天每个难度只有一道题
+  @@index([date])
+  @@index([status])
+}
+
+model ChallengeSubmission {
+  id          String   @id @default(cuid())
+  userId      String
+  challengeId String
+  content     String   // 用户提交的作文
+  score       Float?   // 总分
+  maxScore    Float?   // 满分
+  scores      String?  // JSON: 各维度分数
+  feedback    String?  // JSON: 完整 CorrectionResult（复用 correct.ts 的输出结构）
+  wordCount   Int?
+  timeSpent   Int?     // 实际用时（秒）
+  createdAt   DateTime @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge WeekendChallenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId])  // 每人每道题只能提交一次
+  @@index([userId, createdAt])
+  @@index([challengeId])
 }

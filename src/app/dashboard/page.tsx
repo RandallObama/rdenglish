@@ -1,7 +1,9 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { getBtnStyle } from "@/lib/button-colors";
+import { WeekendChallengeBadge } from "@/components/WeekendChallengeBadge";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -13,9 +15,12 @@ export default async function DashboardPage() {
     <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
       {/* 品牌标题图（透明背景，暗色模式自动反色） */}
       <div className="mb-10 flex justify-center">
-        <img
+        <Image
           src="/title-logo-transparent.png"
           alt="Rdaily English"
+          width={640}
+          height={160}
+          priority
           className="w-full max-w-[640px] h-auto dark:invert"
         />
       </div>
@@ -36,6 +41,9 @@ export default async function DashboardPage() {
           小工具
         </Link>
       </div>
+
+      {/* 周末挑战入口 */}
+      <WeekendChallengeBadge />
     </div>
   );
 }
