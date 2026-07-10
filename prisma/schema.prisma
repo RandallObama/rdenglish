@@ -33,6 +33,7 @@ model User {
   wordbookMemberships WordbookMember[]
   addedWords         WordbookWord[]
   challengeSubmissions ChallengeSubmission[]
+  dailyWordSessions  DailyWordSession[]
 }
 
 model SmsCode {
@@ -290,4 +291,44 @@ model ChallengeSubmission {
   @@unique([userId, challengeId])  // 每人每道题只能提交一次
   @@index([userId, createdAt])
   @@index([challengeId])
+}
+
+model DailyWordSession {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             String   // "YYYY-MM-DD"
+  topic            String
+  examType         String   // "cet4" | "cet6" | "high" | "ielts" ...
+  difficulty       String   // "easy" | "medium" | "hard"
+  words            String   // JSON: WordItem[]
+  status           String   @default("generated") // "generated" | "practicing" | "scenario_ready" | "scenario" | "completed"
+  currentWordIndex Int      @default(0)
+  scenarioMessages String?  // JSON: ScenarioTurn[]
+  usageConsumed    Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  practices WordPractice[]
+
+  @@unique([userId, date])
+  @@index([userId, createdAt])
+}
+
+model WordPractice {
+  id            String   @id @default(cuid())
+  sessionId     String
+  session       DailyWordSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  word          String
+  wordIndex     Int
+  userSentence  String?
+  aiScore       Int?     // 1-5
+  aiComment     String?
+  naturalness   String?  // "natural" | "okay" | "unnatural"
+  grammarOk     Boolean?
+  fullResponse  String?  // JSON: 完整 AI 评价原始数据
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([sessionId, wordIndex])
 }

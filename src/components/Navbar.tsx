@@ -96,6 +96,17 @@ export const Navbar = memo(function Navbar() {
 
               <NavDivider />
 
+              {/* 每日5词 */}
+              <Link
+                href="/vocab-daily"
+                className="text-sm font-medium hover:text-foreground transition-colors"
+                style={{ color: "#ABD1C6" }}
+              >
+                每日5词
+              </Link>
+
+              <NavDivider />
+
               {/* 学习工具 */}
               <Link
                 href="/notebook"
@@ -245,6 +256,9 @@ export const Navbar = memo(function Navbar() {
                   文章批改
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push("/vocab-daily")}>
+                  每日5词
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/notebook")}>
                   笔记本
                 </DropdownMenuItem>
@@ -342,6 +356,15 @@ export const Navbar = memo(function Navbar() {
                 onClick={() => setMenuOpen(false)}
               >
                 批改
+              </Link>
+
+              <MobileSectionHeader label="每日5词" />
+              <Link
+                href="/vocab-daily"
+                className="block py-2 text-sm font-medium"
+                onClick={() => setMenuOpen(false)}
+              >
+                每日5词
               </Link>
 
               <MobileSectionHeader label="学习工具" />

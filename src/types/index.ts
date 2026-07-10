@@ -342,6 +342,52 @@ export interface ConversationItem {
   unreadCount: number;
 }
 
+// ========== 每日5词 ==========
+
+export interface WordItem {
+  word: string;
+  chinese: string;
+  partOfSpeech: string;
+  definition: string;
+  collocations: string[];
+  usage: string;
+  example: string;
+}
+
+export interface DailyVocabSession {
+  id: string;
+  date: string;
+  topic: string;
+  examType: string;
+  difficulty: string;
+  status: string;
+  currentWordIndex: number;
+  words: WordItem[];
+  practices: { wordIndex: number; score: number; completed: boolean }[];
+  scenarioMessages?: ScenarioTurnResult[];
+  usageConsumed: boolean;
+}
+
+export interface SentenceEvaluationResult {
+  score: number;
+  stars: number;
+  semanticCorrect: boolean;
+  grammarCorrect: boolean;
+  naturalness: string;
+  comment: string;
+  suggestedImprovement: string;
+  creativeBonus: boolean;
+}
+
+export interface ScenarioTurnResult {
+  role: "ai" | "user";
+  content: string;
+  usedWords: string[];
+  allUsedWords: string[];
+  completed: boolean;
+  review?: string;
+}
+
 // ========== 共享单词本 ==========
 
 export interface WordbookItem {

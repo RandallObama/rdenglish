@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getBtnStyle } from "@/lib/button-colors";
 
 const items = [
+  { label: "每日5词", href: "/vocab-daily", desc: "每日 5 个核心词汇，造句练习+场景对话", seed: "tools:vocab-daily" },
   { label: "笔记本", href: "/notebook", desc: "保存和管理词汇与语法笔记", seed: "tools:notebook" },
   { label: "语法病历", href: "/grammar-patterns", desc: "分析语法薄弱点与典型错误", seed: "tools:grammar" },
   { label: "学习报告", href: "/report", desc: "查看学习趋势与分数变化", seed: "tools:report" },
