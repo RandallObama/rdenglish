@@ -45,7 +45,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password.length < 6) {
+    const trimmedPassword = password.trim();
+
+    if (trimmedPassword.length < 6) {
       return NextResponse.json(
         { error: "密码至少需要 6 位" },
         { status: 400 }
@@ -120,7 +122,7 @@ export async function POST(request: Request) {
 
     // ── 创建用户 ──
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(trimmedPassword, 10);
 
     await prisma.user.create({
       data: {

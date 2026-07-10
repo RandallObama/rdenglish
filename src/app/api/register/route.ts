@@ -46,6 +46,7 @@ export async function POST(request: Request) {
 
     // 规整化：去首尾空格 + 转小写（防止 SQLite 大小写敏感 + AutoCapitalize）
     const email = rawEmail.trim().toLowerCase();
+    const trimmedPassword = password.trim();
 
     // 邮箱格式校验：必须有 @ 且域名部分含 .
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password.length < 6) {
+    if (trimmedPassword.length < 6) {
       return NextResponse.json(
         { error: "密码至少需要 6 位" },
         { status: 400 }
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(trimmedPassword, 10);
 
     await prisma.user.create({
       data: {

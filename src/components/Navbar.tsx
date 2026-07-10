@@ -23,7 +23,7 @@ import {
   X,
   MessageCircle,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { getBtnStyle } from "@/lib/button-colors";
 import { useChat } from "@/components/ChatContext";
 
@@ -43,7 +43,7 @@ function MobileSectionHeader({ label }: { label: string }) {
   );
 }
 
-export function Navbar() {
+export const Navbar = memo(function Navbar() {
   const { data: session } = useSession();
   const { setTheme } = useTheme();
   const router = useRouter();
@@ -476,4 +476,4 @@ export function Navbar() {
       </div>
     </header>
   );
-}
+});

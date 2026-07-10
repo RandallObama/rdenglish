@@ -234,6 +234,7 @@ export default function RegisterPage() {
                   <Input
                     id="email"
                     type="email"
+                    autoComplete="email"
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -247,6 +248,7 @@ export default function RegisterPage() {
                   <Input
                     id="password-email"
                     type="password"
+                    autoComplete="new-password"
                     placeholder="至少 6 位"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -290,6 +292,7 @@ export default function RegisterPage() {
                   <Input
                     id="phone"
                     type="tel"
+                    autoComplete="tel"
                     placeholder="请输入手机号"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
@@ -340,6 +343,7 @@ export default function RegisterPage() {
                   <Input
                     id="password-phone"
                     type="password"
+                    autoComplete="new-password"
                     placeholder="至少 6 位"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

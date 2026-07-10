@@ -80,6 +80,7 @@ function LoginForm() {
               id="email"
               type="text"
               inputMode="email"
+              autoComplete="username"
               placeholder="邮箱或手机号"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
@@ -93,6 +94,7 @@ function LoginForm() {
             <Input
               id="password"
               type="password"
+              autoComplete="current-password"
               placeholder="••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

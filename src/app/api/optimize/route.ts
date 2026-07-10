@@ -115,39 +115,46 @@ export async function POST(request: Request) {
         }
 
         if (!result) {
-          send({ type: "error", message: "AI 返回为空" });
+          send({ type: "error", message: "AI 返回为空，请尝试缩短文本或更换选项后重试" });
           return;
         }
 
-        // 保存到数据库
-        const optimization = await prisma.optimization.create({
-          data: {
-            userId: userId,
-            originalText: text.trim(),
-            optimizedText: result.optimizedText,
-            style: safeStyle,
-            examType: safeExamType,
-            intensity: safeIntensity,
-            mode: safeMode,
-            improvements: JSON.stringify(result.improvements),
-            grammarNotes: result.grammarNotes.length > 0
-              ? JSON.stringify(result.grammarNotes)
-              : null,
-            vocabNotes: result.vocabNotes.length > 0
-              ? JSON.stringify(result.vocabNotes)
-              : null,
-            highlights: result.highlights || "",
-            transitionAnalysis: result.transitionAnalysis
-              ? JSON.stringify(result.transitionAnalysis)
-              : null,
-            contextBefore: safeContextBefore || null,
-            contextAfter: safeContextAfter || null,
-          },
-        });
+        // 保存到数据库（保存失败不影响结果返回）
+        let optimizationId = "";
+        try {
+          const optimization = await prisma.optimization.create({
+            data: {
+              userId: userId,
+              originalText: text.trim(),
+              optimizedText: result.optimizedText,
+              style: safeStyle,
+              examType: safeExamType,
+              intensity: safeIntensity,
+              mode: safeMode,
+              improvements: JSON.stringify(result.improvements),
+              grammarNotes: result.grammarNotes.length > 0
+                ? JSON.stringify(result.grammarNotes)
+                : null,
+              vocabNotes: result.vocabNotes.length > 0
+                ? JSON.stringify(result.vocabNotes)
+                : null,
+              highlights: result.highlights || "",
+              transitionAnalysis: result.transitionAnalysis
+                ? JSON.stringify(result.transitionAnalysis)
+                : null,
+              contextBefore: safeContextBefore || null,
+              contextAfter: safeContextAfter || null,
+            },
+          });
+          optimizationId = optimization.id;
+        } catch (dbErr) {
+          console.error("Optimization DB save error:", dbErr);
+          // 数据库保存失败不阻塞用户查看结果
+        }
 
         send({
           type: "done",
-          result: { id: optimization.id, ...result, remaining: usage.remaining },
+          result: { id: optimizationId, ...result, remaining: usage.remaining },
           remaining: usage.remaining,
         });
       });
@@ -164,38 +171,74 @@ export async function POST(request: Request) {
       safeContextAfter
     );
 
-    const optimization = await prisma.optimization.create({
-      data: {
-        userId: userId,
-        originalText: text.trim(),
-        optimizedText: result.optimizedText,
-        style: safeStyle,
-        examType: safeExamType,
-        intensity: safeIntensity,
-        mode: safeMode,
-        improvements: JSON.stringify(result.improvements),
-        grammarNotes: result.grammarNotes.length > 0
-          ? JSON.stringify(result.grammarNotes)
-          : null,
-        vocabNotes: result.vocabNotes.length > 0
-          ? JSON.stringify(result.vocabNotes)
-          : null,
-        highlights: result.highlights || "",
-        transitionAnalysis: result.transitionAnalysis
-          ? JSON.stringify(result.transitionAnalysis)
-          : null,
-        contextBefore: safeContextBefore || null,
-        contextAfter: safeContextAfter || null,
-      },
-    });
+    // 保存到数据库（保存失败不影响结果返回）
+    let optimizationId = "";
+    try {
+      const optimization = await prisma.optimization.create({
+        data: {
+          userId: userId,
+          originalText: text.trim(),
+          optimizedText: result.optimizedText,
+          style: safeStyle,
+          examType: safeExamType,
+          intensity: safeIntensity,
+          mode: safeMode,
+          improvements: JSON.stringify(result.improvements),
+          grammarNotes: result.grammarNotes.length > 0
+            ? JSON.stringify(result.grammarNotes)
+            : null,
+          vocabNotes: result.vocabNotes.length > 0
+            ? JSON.stringify(result.vocabNotes)
+            : null,
+          highlights: result.highlights || "",
+          transitionAnalysis: result.transitionAnalysis
+            ? JSON.stringify(result.transitionAnalysis)
+            : null,
+          contextBefore: safeContextBefore || null,
+          contextAfter: safeContextAfter || null,
+        },
+      });
+      optimizationId = optimization.id;
+    } catch (dbErr) {
+      console.error("Optimization DB save error:", dbErr);
+    }
 
     return NextResponse.json({
-      id: optimization.id,
+      id: optimizationId,
       ...result,
       remaining: usage.remaining,
     });
   } catch (error) {
-    console.error("Optimization error:", error);
+    const err = error as Error & { status?: number; code?: string };
+    console.error("Optimization error:", {
+      message: err.message,
+      status: err.status,
+      code: err.code,
+      stack: err.stack?.slice(0, 500),
+    });
+
+    // 区分 DeepSeek API 特定错误
+    const code = err.code || "";
+    const msg = err.message || "";
+    if (err.status === 401) {
+      return NextResponse.json(
+        { error: "AI 服务鉴权失败，请检查 API Key 是否正确或余额是否充足" },
+        { status: 500 }
+      );
+    }
+    if (err.status === 429 || code === "rate_limit_exceeded") {
+      return NextResponse.json(
+        { error: "AI 服务繁忙，请稍后重试" },
+        { status: 503 }
+      );
+    }
+    if (msg.includes("timeout") || msg.includes("ETIMEDOUT") || msg.includes("ECONNREFUSED")) {
+      return NextResponse.json(
+        { error: "AI 服务连接超时，请稍后重试" },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { error: "优化出错，请稍后重试" },
       { status: 500 }

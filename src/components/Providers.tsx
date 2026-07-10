@@ -4,7 +4,11 @@ import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatProvider } from "@/components/ChatContext";
-import { ChatPanel } from "@/components/ChatPanel";
+import dynamic from "next/dynamic";
+
+const ChatPanel = dynamic(() => import("@/components/ChatPanel").then((m) => m.ChatPanel), {
+  ssr: false,
+});
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

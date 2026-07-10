@@ -46,13 +46,32 @@ const levelVariant = {
   "高级": "destructive" as const,
 } as Record<string, "secondary" | "default" | "destructive">;
 
-const categoryConfig: Record<ImprovementItem["category"], { label: string; color: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+const categoryConfig: Record<string, { label: string; color: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   grammar: { label: "语法", color: "text-primary dark:text-[#ABD1C6]", variant: "default" },
   vocabulary: { label: "词汇", color: "text-green-600 dark:text-green-400", variant: "secondary" },
   logic: { label: "逻辑", color: "text-orange-600 dark:text-orange-400", variant: "outline" },
   structure: { label: "结构", color: "text-[#5C5956] dark:text-[#C8E5DC]", variant: "default" },
   content: { label: "内容", color: "text-red-600 dark:text-red-400", variant: "destructive" },
 };
+// 大小写/拼写变体映射，防止 AI 返回非标准 category 导致页面崩溃
+const KNOWN_CATEGORY_ALIASES: Record<string, string> = {
+  Grammar: "grammar", GRAMMAR: "grammar", grammer: "grammar",
+  Vocabulary: "vocabulary", VOCABULARY: "vocabulary", vocab: "vocabulary", Vocab: "vocabulary",
+  Logic: "logic", LOGIC: "logic", logical: "logic",
+  Structure: "structure", STRUCTURE: "structure", struct: "structure",
+  Content: "content", CONTENT: "content", contents: "content",
+};
+const DEFAULT_CATEGORY = categoryConfig.grammar;
+
+function resolveCategory(raw: string): typeof DEFAULT_CATEGORY {
+  if (categoryConfig[raw]) return categoryConfig[raw];
+  const mapped = KNOWN_CATEGORY_ALIASES[raw];
+  if (mapped && categoryConfig[mapped]) return categoryConfig[mapped];
+  // 不区分大小写再试一次
+  const lower = raw?.toLowerCase();
+  if (lower && categoryConfig[lower]) return categoryConfig[lower];
+  return DEFAULT_CATEGORY; // 安全兜底
+}
 
 export function OptimizeResult({
   resultId,
@@ -159,7 +178,7 @@ export function OptimizeResult({
               </p>
             ) : (
               improvements.map((item, i) => {
-                const cfg = categoryConfig[item.category];
+                const cfg = resolveCategory(item.category);
                 return (
                   <div
                     key={i}

@@ -93,25 +93,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // 标记验证码已使用
-    await prisma.smsCode.update({
-      where: { id: codeRecord.id },
-      data: { usedAt: new Date() },
-    });
-
-    // ── 更新密码 ──
-
+    // 标记验证码已使用 + 更新密码（并行，互不依赖）
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { passwordHash },
-    });
+    await Promise.all([
+      prisma.smsCode.update({
+        where: { id: codeRecord.id },
+        data: { usedAt: new Date() },
+      }),
+      prisma.user.update({
+        where: { id: session.user.id },
+        data: { passwordHash },
+      }),
+    ]);
 
-    // 清理该手机号的验证码记录
-    await prisma.smsCode.deleteMany({
+    // 清理该手机号的过期验证码记录（可异步，不阻塞响应）
+    prisma.smsCode.deleteMany({
       where: { phone: user.phone },
-    });
+    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {

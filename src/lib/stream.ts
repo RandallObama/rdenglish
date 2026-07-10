@@ -24,10 +24,29 @@ export function createSSEResponse(
       try {
         await generator(send);
       } catch (err) {
-        send({
-          type: "error",
-          message: err instanceof Error ? err.message : "未知错误",
+        const e = err as Error & { status?: number; code?: string; name?: string };
+        console.error("SSE stream error:", {
+          message: e.message,
+          status: e.status,
+          code: e.code,
+          name: e.name,
         });
+
+        let userMessage = "AI 服务暂时不可用，请稍后重试";
+        if (e.status === 401) {
+          userMessage = "AI 服务鉴权失败，请联系管理员检查 API Key";
+        } else if (e.status === 429 || e.code === "rate_limit_exceeded") {
+          userMessage = "AI 服务繁忙，请稍后重试";
+        } else if (e.message?.includes("timeout") || e.message?.includes("ETIMEDOUT")) {
+          userMessage = "AI 响应超时，请尝试缩短文本或稍后重试";
+        } else if (e.message?.includes("Insufficient") || e.message?.includes("balance")) {
+          userMessage = "AI 服务余额不足，请联系管理员充值";
+        } else if (e.name === "AbortError" || e.message?.includes("abort")) {
+          userMessage = "请求超时，请尝试缩短文本后重试";
+        } else if (e.message) {
+          userMessage = `AI 服务异常：${e.message.slice(0, 100)}`;
+        }
+        send({ type: "error", message: userMessage });
       } finally {
         controller.close();
       }

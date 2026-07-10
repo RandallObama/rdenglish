@@ -257,7 +257,7 @@ export function Writer({ onResult, onError }: WriterProps) {
       {/* 输入区域 + 续写弹出 */}
       <div className="relative" ref={cowriteRef}>
         <Textarea
-          placeholder="在这里输入你想翻译的中文内容...&#10;比如：随着互联网的普及，越来越多的人开始关注网络安全问题。"
+          placeholder="输入你想翻译的中文内容..."
           value={text}
           onChange={(e) => setText(e.target.value)}
           className="min-h-[180px] sm:min-h-[200px] text-base resize-y"

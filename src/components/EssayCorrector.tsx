@@ -236,7 +236,7 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
       {/* 输入区域 + 续写弹出 */}
       <div className="relative" ref={cowriteRef}>
         <Textarea
-          placeholder="在这里粘贴你的英语作文...&#10;&#10;比如：&#10;Nowadays, with the development of technology, more and more people prefer to shop online. In my opinion, online shopping has both advantages and disadvantages..."
+          placeholder="粘贴你的英语作文..."
           value={essay}
           onChange={(e) => setEssay(e.target.value)}
           className="min-h-[220px] sm:min-h-[250px] text-base resize-y"

@@ -13,29 +13,29 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  // 获取我创建的单词本
-  const owned = await prisma.wordbook.findMany({
-    where: { creatorId: userId },
-    include: {
-      creator: { select: { id: true, name: true } },
-      _count: { select: { members: true, words: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
-
-  // 获取我加入的单词本（非我创建的）
-  const memberships = await prisma.wordbookMember.findMany({
-    where: { userId, role: "editor" }, // owner 也算 member 且 role=owner
-    include: {
-      wordbook: {
-        include: {
-          creator: { select: { id: true, name: true } },
-          _count: { select: { members: true, words: true } },
+  // 并行获取我创建的 + 我加入的单词本
+  const [owned, memberships] = await Promise.all([
+    prisma.wordbook.findMany({
+      where: { creatorId: userId },
+      include: {
+        creator: { select: { id: true, name: true } },
+        _count: { select: { members: true, words: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.wordbookMember.findMany({
+      where: { userId, role: "editor" },
+      include: {
+        wordbook: {
+          include: {
+            creator: { select: { id: true, name: true } },
+            _count: { select: { members: true, words: true } },
+          },
         },
       },
-    },
-    orderBy: { joinedAt: "desc" },
-  });
+      orderBy: { joinedAt: "desc" },
+    }),
+  ]);
 
   // 合并去重：我已经创建的单词本不需要在 memberships 里再出现
   const ownedIds = new Set(owned.map((w) => w.id));

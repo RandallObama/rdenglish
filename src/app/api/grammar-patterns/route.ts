@@ -16,10 +16,11 @@ export async function GET() {
   const userId = session.user.id;
 
   try {
-    // 查所有批改记录，只取 grammmarIssues 和 createdAt
+    // 查最近批改记录，只取 grammarIssues 和 createdAt
     const corrections = await prisma.correction.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
+      take: 200,
       select: {
         grammarIssues: true,
         createdAt: true,

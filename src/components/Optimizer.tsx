@@ -334,7 +334,7 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
       <div className="relative" ref={cowriteRef}>
         <Textarea
           ref={textareaRef}
-          placeholder="在这里粘贴或输入你的英文文本...&#10;比如：&#10;Nowadays, with the development of technology, more and more people prefer to shop online. In my opinion, online shopping has both advantages and disadvantages."
+          placeholder="粘贴或输入你的英文文本..."
           value={text}
           onChange={(e) => {
             setText(e.target.value);

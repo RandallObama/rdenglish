@@ -86,7 +86,7 @@ const providers: Provider[] = [
 
       // 规整化：去首尾空格 + 邮箱转小写（防止 SQLite 大小写敏感导致查不到用户）
       const identifier = (credentials.email as string).trim().toLowerCase();
-      const password = credentials.password as string;
+      const password = (credentials.password as string).trim();
 
       // 登录速率限制检查（按 identifier 存储，兼容邮箱和手机号）
       if (!(await checkLoginRateLimit(identifier))) {

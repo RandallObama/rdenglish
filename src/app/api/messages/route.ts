@@ -14,13 +14,23 @@ export async function GET() {
 
     const userId = session.user.id;
 
-    // 获取用户参与的所有消息，按时间倒序
+    // 获取用户参与的所有消息，只取必要字段，按时间倒序
     const messages = await prisma.message.findMany({
       where: {
         OR: [{ senderId: userId }, { receiverId: userId }],
       },
       orderBy: { createdAt: "desc" },
-      take: 500,
+      take: 300,
+      select: {
+        id: true,
+        senderId: true,
+        receiverId: true,
+        content: true,
+        contentType: true,
+        contentId: true,
+        read: true,
+        createdAt: true,
+      },
     });
 
     // 内存中去重：每个好友只保留最新一条消息

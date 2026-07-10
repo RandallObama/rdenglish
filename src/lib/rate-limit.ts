@@ -16,6 +16,10 @@ const AI_RPM = (() => {
   return Number.isFinite(n) && n > 0 ? n : 30;
 })();
 
+// ── 服务端轻量缓存：减少重复 DB 查询 ──
+const usageCache = new Map<string, { data: Awaited<ReturnType<typeof checkUsageRaw>>; at: number }>();
+const CACHE_TTL = 10_000; // 10 秒，足够覆盖同一用户连续请求
+
 // ── 每分钟节流（内存实现，多实例不共享但作为纵深防御）──
 const rpmCounters = new Map<string, { count: number; resetAt: number }>();
 
@@ -24,6 +28,9 @@ setInterval(() => {
   const now = Date.now();
   for (const [key, val] of rpmCounters) {
     if (now > val.resetAt) rpmCounters.delete(key);
+  }
+  for (const [key, val] of usageCache) {
+    if (now - val.at > CACHE_TTL) usageCache.delete(key);
   }
 }, 300_000);
 
@@ -56,12 +63,12 @@ function getToday(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+type UsageInfo = { remaining: number; limit: number; isPro: boolean };
+
 /**
- * 获取用户当前用量信息（只读）。
+ * 获取用户当前用量信息（只读，无缓存直读）。
  */
-export async function checkUsage(
-  userId: string
-): Promise<{ remaining: number; limit: number; isPro: boolean }> {
+async function checkUsageRaw(userId: string): Promise<UsageInfo> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { plan: true, dailyUsage: true, lastUsageDate: true },
@@ -89,6 +96,21 @@ export async function checkUsage(
 }
 
 /**
+ * 获取用户当前用量信息（只读，10 秒内存缓存）。
+ * 高频调用（Navbar、页面加载等）可命中缓存，减少 DB 查询。
+ */
+export async function checkUsage(userId: string): Promise<UsageInfo> {
+  const now = Date.now();
+  const cached = usageCache.get(userId);
+  if (cached && now - cached.at < CACHE_TTL) {
+    return cached.data;
+  }
+  const data = await checkUsageRaw(userId);
+  usageCache.set(userId, { data, at: now });
+  return data;
+}
+
+/**
  * 原子化扣减：在 $transaction 内使用两步 updateMany 策略，彻底消除竞态。
  *
  * 步骤：
@@ -105,6 +127,9 @@ export async function consumeUsage(
   userId: string
 ): Promise<{ allowed: boolean; remaining: number; limit: number; isPro: boolean }> {
   const today = getToday();
+
+  // 使缓存失效，下次 checkUsage 会读最新数据
+  usageCache.delete(userId);
 
   return prisma.$transaction(async (tx) => {
     // 仅读取 plan 做快速判断（不依赖 dailyUsage/lastUsageDate 做分支决策）

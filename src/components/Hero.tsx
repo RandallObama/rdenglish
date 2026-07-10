@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
 import { PenLine, Wrench } from "lucide-react";
 import { getBtnStyle } from "@/lib/button-colors";
@@ -16,9 +17,12 @@ export function Hero() {
         <div className="mx-auto max-w-3xl text-center">
           {/* 品牌标题图（透明背景，暗色模式自动反色） */}
           <div className="mb-8 flex justify-center">
-            <img
+            <Image
               src="/title-logo-transparent.png"
               alt="Rdaily English"
+              width={640}
+              height={160}
+              priority
               className="w-full max-w-[640px] h-auto dark:invert"
             />
           </div>

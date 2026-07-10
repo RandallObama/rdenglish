@@ -47,10 +47,10 @@ export async function GET(request: Request) {
     {
       items: optimizations.map((o) => ({
         ...o,
-        improvements: o.improvements ? JSON.parse(o.improvements) : [],
-        grammarNotes: o.grammarNotes ? JSON.parse(o.grammarNotes) : [],
-        vocabNotes: o.vocabNotes ? JSON.parse(o.vocabNotes) : [],
-        transitionAnalysis: o.transitionAnalysis ? JSON.parse(o.transitionAnalysis) : null,
+        improvements: safeJsonParse(o.improvements, []),
+        grammarNotes: safeJsonParse(o.grammarNotes, []),
+        vocabNotes: safeJsonParse(o.vocabNotes, []),
+        transitionAnalysis: safeJsonParse(o.transitionAnalysis, null),
       })),
       total,
       page,
@@ -63,4 +63,13 @@ export async function GET(request: Request) {
       },
     }
   );
+}
+
+function safeJsonParse<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
 }

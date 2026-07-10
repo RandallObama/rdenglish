@@ -37,6 +37,7 @@ export function ChatPanel() {
   } | null>(null);
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
+  const [msgInitialLoaded, setMsgInitialLoaded] = useState(false);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [viewingContent, setViewingContent] = useState<{
@@ -82,14 +83,16 @@ export function ChatPanel() {
 
   // 获取消息历史
   const fetchMessages = useCallback(
-    async (friendId: string) => {
+    async (friendId: string, isPoll: boolean) => {
       if (!userId) return;
-      setMsgLoading(true);
+      // 只有首次加载才显示 loading，轮询静默刷新
+      if (!isPoll) setMsgLoading(true);
       try {
         const res = await fetch(`/api/messages/${friendId}?limit=50`);
         if (!res.ok) throw new Error("加载失败");
         const data = await res.json();
         setMessages(data.messages || []);
+        if (!isPoll) setMsgInitialLoaded(true);
 
         // 标记已读
         await fetch("/api/messages/read", {
@@ -104,9 +107,9 @@ export function ChatPanel() {
           )
         );
       } catch {
-        toast.error("加载消息失败");
+        if (!isPoll) toast.error("加载消息失败");
       } finally {
-        setMsgLoading(false);
+        if (!isPoll) setMsgLoading(false);
       }
     },
     [userId]
@@ -126,11 +129,13 @@ export function ChatPanel() {
   // 选中好友后加载消息 + 开始轮询
   useEffect(() => {
     if (selectedFriend) {
-      fetchMessages(selectedFriend.friendId);
+      setMsgInitialLoaded(false);
+      setMessages([]);  // 切换好友时清空旧消息
+      fetchMessages(selectedFriend.friendId, false);
       // 开始轮询活跃会话
       if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(() => {
-        fetchMessages(selectedFriend.friendId);
+        fetchMessages(selectedFriend.friendId, true);
       }, 5000);
     } else {
       if (pollRef.current) {
@@ -138,6 +143,7 @@ export function ChatPanel() {
         pollRef.current = null;
       }
       setMessages([]);
+      setMsgInitialLoaded(false);
     }
     return () => {
       if (pollRef.current) {

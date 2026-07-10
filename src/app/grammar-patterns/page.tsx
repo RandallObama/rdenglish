@@ -1,24 +1,9 @@
-"use client";
-
-import { useSession } from "next-auth/react";
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { GrammarPatternsView } from "@/components/GrammarPatternsView";
-import { Loader2 } from "lucide-react";
 
-export default function GrammarPatternsPage() {
-  const { status } = useSession();
-
-  if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (status === "unauthenticated") {
-    redirect("/login");
-  }
-
+export default async function GrammarPatternsPage() {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
   return <GrammarPatternsView />;
 }
