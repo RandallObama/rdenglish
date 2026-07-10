@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { toast } from "sonner";
@@ -18,14 +19,26 @@ import {
   Target,
   AlertCircle,
 } from "lucide-react";
-import {
-  TranslationDailyChart,
-  ScoreTrendChart,
-  GrammarTrendChart,
-  VocabGrowthChart,
-} from "@/components/ReportCharts";
 import { getBtnStyle } from "@/lib/button-colors";
 import type { ReportData, ReportPeriodType } from "@/types";
+
+// Recharts is ~400KB — dynamically import chart components to reduce initial bundle size
+const TranslationDailyChart = dynamic(
+  () => import("@/components/ReportCharts").then((m) => m.TranslationDailyChart),
+  { ssr: false, loading: () => <div className="animate-pulse h-[250px] bg-muted rounded-xl" /> }
+);
+const ScoreTrendChart = dynamic(
+  () => import("@/components/ReportCharts").then((m) => m.ScoreTrendChart),
+  { ssr: false, loading: () => <div className="animate-pulse h-[250px] bg-muted rounded-xl" /> }
+);
+const GrammarTrendChart = dynamic(
+  () => import("@/components/ReportCharts").then((m) => m.GrammarTrendChart),
+  { ssr: false, loading: () => <div className="animate-pulse h-[250px] bg-muted rounded-xl" /> }
+);
+const VocabGrowthChart = dynamic(
+  () => import("@/components/ReportCharts").then((m) => m.VocabGrowthChart),
+  { ssr: false, loading: () => <div className="animate-pulse h-[250px] bg-muted rounded-xl" /> }
+);
 
 // ── 周期标签 ──
 

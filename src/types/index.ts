@@ -210,6 +210,10 @@ export interface GrammarPatternAnalysis {
   uniquePoints: number;
   topPattern: string | null;
   topPatternCount: number;
+  /** 是否还有更多结果（分页用） */
+  hasMore?: boolean;
+  /** 总语法点数量（分页用） */
+  totalPatterns?: number;
 }
 
 export interface GrammarExercise {

@@ -7,13 +7,18 @@ import type { GrammarPattern, GrammarPatternAnalysis } from "@/types";
 
 // ── GET: 错误模式分析（只读，不消耗配额） ──
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "请先登录" }, { status: 401 });
   }
 
   const userId = session.user.id;
+
+  // 分页参数
+  const { searchParams } = new URL(request.url);
+  const skip = Math.max(0, parseInt(searchParams.get("skip") || "0", 10));
+  const take = Math.min(200, Math.max(1, parseInt(searchParams.get("take") || "50", 10)));
 
   try {
     // 查最近批改记录，只取 grammarIssues 和 createdAt
@@ -31,7 +36,7 @@ export async function GET() {
     const patternMap = buildPatternMap(corrections);
 
     // 转换 Map → GrammarPattern[]
-    const patterns: GrammarPattern[] = [];
+    const allPatterns: GrammarPattern[] = [];
 
     for (const [point, data] of patternMap) {
       const sortedDates = [...data.dates].sort();
@@ -42,7 +47,7 @@ export async function GET() {
       const lastMs = new Date(lastOccurred).getTime();
       const totalSpan = Math.max(0, Math.ceil((lastMs - firstMs) / (1000 * 60 * 60 * 24)));
 
-      patterns.push({
+      allPatterns.push({
         point,
         count: data.dates.length,
         firstOccurred,
@@ -59,19 +64,26 @@ export async function GET() {
     }
 
     // 按出现次数降序
-    patterns.sort((a, b) => b.count - a.count);
+    allPatterns.sort((a, b) => b.count - a.count);
+
+    // 分页截取
+    const totalPatterns = allPatterns.length;
+    const patterns = allPatterns.slice(skip, skip + take);
+    const hasMore = skip + take < totalPatterns;
 
     // 汇总
-    const totalIssues = patterns.reduce((sum, p) => sum + p.count, 0);
-    const top = patterns[0] || null;
+    const totalIssues = allPatterns.reduce((sum, p) => sum + p.count, 0);
+    const top = allPatterns[0] || null;
 
     const analysis: GrammarPatternAnalysis = {
       patterns,
       totalCorrections: corrections.length,
       totalIssues,
-      uniquePoints: patterns.length,
+      uniquePoints: totalPatterns,
       topPattern: top?.point || null,
       topPatternCount: top?.count || 0,
+      hasMore,
+      totalPatterns,
     };
 
     return NextResponse.json(analysis, {

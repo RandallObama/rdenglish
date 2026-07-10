@@ -25,13 +25,21 @@ export async function DELETE(
 
   const friendId = friendship.requesterId === userId ? friendship.addresseeId : friendship.requesterId;
 
-  // 同时删除双向的消息记录和好友关系
+  // 同时删除双向的消息记录、单词本成员关系和好友关系
   await prisma.$transaction([
     prisma.message.deleteMany({
       where: {
         OR: [
           { senderId: userId, receiverId: friendId },
           { senderId: friendId, receiverId: userId },
+        ],
+      },
+    }),
+    prisma.wordbookMember.deleteMany({
+      where: {
+        OR: [
+          { wordbook: { creatorId: userId }, userId: friendId },
+          { wordbook: { creatorId: friendId }, userId: userId },
         ],
       },
     }),

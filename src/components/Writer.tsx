@@ -304,18 +304,25 @@ export function Writer({ onResult, onError }: WriterProps) {
       <LoadingProgress loading={loading && !streaming} label="正在连接 AI..." />
       <LoadingProgress loading={loading && streaming} label="正在深度分析中..." />
 
-      {!loading && (
-        <Button
-          onClick={handleSubmit}
-          disabled={!text.trim()}
-          className="w-full"
-          size="lg"
-          style={getBtnStyle("writer:submit")}
-        >
-          <Send className="mr-2 h-4 w-4" />
-          开始翻译与分析
-        </Button>
-      )}
+      <Button
+        onClick={handleSubmit}
+        disabled={!text.trim() || loading}
+        className="w-full"
+        size="lg"
+        style={getBtnStyle("writer:submit")}
+      >
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            翻译中...
+          </>
+        ) : (
+          <>
+            <Send className="mr-2 h-4 w-4" />
+            开始翻译与分析
+          </>
+        )}
+      </Button>
     </div>
   );
 }

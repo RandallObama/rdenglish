@@ -15,15 +15,15 @@ const SMS_IP_WINDOW_MS = 3_600_000; // 1 小时
 
 const ipRecords = new Map<string, { count: number; firstAttempt: number }>();
 
-// 每 10 分钟清理过期 IP 记录
-setInterval(() => {
+/** 惰性清理过期 IP 记录 */
+function cleanExpiredIpRecords(): void {
   const now = Date.now();
   for (const [ip, record] of ipRecords) {
     if (now - record.firstAttempt > SMS_IP_WINDOW_MS) {
       ipRecords.delete(ip);
     }
   }
-}, 600_000);
+}
 
 /**
  * 从请求头提取客户端真实 IP（适配 Vercel 代理）
@@ -36,8 +36,11 @@ export function extractClientIp(request: Request): string {
   return request.headers.get("x-real-ip") || "unknown";
 }
 
-/** 检查 IP 短信发送频率 */
+/** 检查 IP 短信发送频率（含惰性清理） */
 export function checkSmsIpLimit(ip: string): { allowed: boolean; remaining: number } {
+  // 惰性清理过期 IP 记录（替代 setInterval）
+  cleanExpiredIpRecords();
+
   const now = Date.now();
   const record = ipRecords.get(ip);
 
@@ -96,24 +99,24 @@ export async function checkSmsPhoneLimit(phone: string): Promise<{
       data: { phone, count: 1, windowStartAt: now },
     });
 
+    // 惰性清理：顺便删除过期记录，防止表膨胀（替代 setInterval）
+    const yesterday = new Date(Date.now() - 86_400_000);
+    await tx.smsRateLimit.deleteMany({
+      where: { windowStartAt: { lt: yesterday } },
+    });
+
     return { allowed: true };
   });
 
-  return result;
-}
-
-// ── 定期清理过期 SmsRateLimit 记录 ──
-setInterval(async () => {
-  const yesterday = new Date(Date.now() - 86_400_000);
+  // 惰性清理过期验证码（不阻塞主流程）
   try {
-    await prisma.smsRateLimit.deleteMany({
-      where: { windowStartAt: { lt: yesterday } },
-    });
-    // 同时清理过期验证码
     await prisma.smsCode.deleteMany({
       where: { expiresAt: { lt: new Date() }, usedAt: null },
     });
   } catch {
     // 静默忽略清理异常
   }
-}, 300_000);
+
+  return result;
+}
+

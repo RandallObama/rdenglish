@@ -44,7 +44,12 @@ async function checkLoginRateLimit(email: string): Promise<boolean> {
 
     // 步骤 3：窗口内无记录（首次尝试 或 窗口已过期）
     // 删除旧窗口记录（如果有），创建新窗口记录
+    // 同时清理该邮箱的所有过期记录（lazy cleanup，替代 setInterval）
     await tx.loginAttempt.deleteMany({ where: { email } });
+    // 顺便清理所有过期记录，防止表膨胀（lazy cleanup）
+    await tx.loginAttempt.deleteMany({
+      where: { firstAttemptAt: { lt: new Date(Date.now() - LOGIN_WINDOW_MS) } },
+    });
     await tx.loginAttempt.create({
       data: { email, count: 1, firstAttemptAt: now },
     });
@@ -59,17 +64,6 @@ async function clearLoginRateLimit(email: string): Promise<void> {
   await prisma.loginAttempt.deleteMany({ where: { email } });
 }
 
-// 定期清理过期窗口记录（每 5 分钟），防止表膨胀
-setInterval(async () => {
-  const cutoff = new Date(Date.now() - LOGIN_WINDOW_MS);
-  try {
-    await prisma.loginAttempt.deleteMany({
-      where: { firstAttemptAt: { lt: cutoff } },
-    });
-  } catch {
-    // 静默忽略清理异常
-  }
-}, 300_000);
 // ── 速率限制结束 ──
 
 const providers: Provider[] = [
@@ -141,7 +135,11 @@ const providers: Provider[] = [
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers,
   secret: process.env.AUTH_SECRET,
-  trustHost: true,
+  // trustHost 不显式设置，由 Auth.js 根据环境变量自动决定：
+  //   - VERCEL / CF_PAGES 环境 → 自动信任
+  //   - NODE_ENV !== "production" → 开发环境自动信任
+  //   - AUTH_URL 已配置 → 自动信任
+  //   只有生产环境且无已知平台标识时 trustHost=false，提供额外防护
   pages: {
     signIn: "/login",
   },
@@ -153,6 +151,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id as string;
       }
+
+      // 验证用户仍存在于数据库中（防止已删除用户的 JWT 仍然有效）
+      // token.sub 是 Auth.js 自动设置的 JWT subject claim（即用户 ID）
+      const userId = token.sub as string | undefined;
+      if (userId) {
+        try {
+          const existingUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true },
+          });
+          if (!existingUser) {
+            // 用户已被删除，销毁会话
+            return null;
+          }
+        } catch {
+          // 数据库查询失败时，默认允许通过，避免误封
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {

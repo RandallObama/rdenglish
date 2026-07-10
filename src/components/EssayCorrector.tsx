@@ -282,18 +282,25 @@ export function EssayCorrector({ onResult, onError }: EssayCorrectorProps) {
       <LoadingProgress loading={loading && !streaming} label="正在连接 AI..." />
       <LoadingProgress loading={loading && streaming} label="正在深度批改中..." />
 
-      {!loading && (
-        <Button
-          onClick={handleSubmit}
-          disabled={!essay.trim()}
-          className="w-full"
-          size="lg"
-          style={getBtnStyle("corrector:submit")}
-        >
-          <Send className="mr-2 h-4 w-4" />
-          提交批改
-        </Button>
-      )}
+      <Button
+        onClick={handleSubmit}
+        disabled={!essay.trim() || loading}
+        className="w-full"
+        size="lg"
+        style={getBtnStyle("corrector:submit")}
+      >
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            批改中...
+          </>
+        ) : (
+          <>
+            <Send className="mr-2 h-4 w-4" />
+            提交批改
+          </>
+        )}
+      </Button>
     </div>
   );
 }

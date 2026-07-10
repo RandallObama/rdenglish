@@ -39,14 +39,14 @@ export async function GET(request: Request) {
     take: 20,
   });
 
-  // 查找当前用户已有的所有好友关系（含 blocked）
+  // 查找当前用户已有的所有好友关系（含 pending/accepted）
   const existingRelations = await prisma.friendship.findMany({
     where: {
       OR: [
         { requesterId: userId },
         { addresseeId: userId },
       ],
-      status: { in: ["pending", "accepted", "blocked"] },
+      status: { in: ["pending", "accepted"] },
     },
     select: { requesterId: true, addresseeId: true, status: true },
   });
@@ -57,9 +57,26 @@ export async function GET(request: Request) {
     if (rel.addresseeId === userId) relatedUserIds.add(rel.requesterId);
   }
 
-  // 过滤掉已有关系和 name 为空的用户
+  // 单独查询被当前用户拉黑 / 拉黑当前用户的用户，显式排除
+  const blockedRelations = await prisma.friendship.findMany({
+    where: {
+      OR: [
+        { requesterId: userId, status: "blocked" },
+        { addresseeId: userId, status: "blocked" },
+      ],
+    },
+    select: { requesterId: true, addresseeId: true },
+  });
+
+  const blockedUserIds = new Set<string>();
+  for (const rel of blockedRelations) {
+    if (rel.requesterId === userId) blockedUserIds.add(rel.addresseeId);
+    if (rel.addresseeId === userId) blockedUserIds.add(rel.requesterId);
+  }
+
+  // 过滤掉已有关系、黑名单用户和 name 为空的用户
   const users = nameMatches
-    .filter((u) => !relatedUserIds.has(u.id) && u.name)
+    .filter((u) => !relatedUserIds.has(u.id) && !blockedUserIds.has(u.id) && u.name)
     .map((u) => ({ id: u.id, name: u.name as string }));
 
   return NextResponse.json({ users }, { headers: CACHE_HEADER });

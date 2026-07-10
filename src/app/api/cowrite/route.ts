@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { cowriteContinue, streamCowriteContinue, cowriteContinueEn, streamCowriteContinueEn } from "@/lib/deepseek";
 import { consumeUsage, checkAiRpm } from "@/lib/rate-limit";
 import { createSSEResponse } from "@/lib/stream";
+import { prisma } from "@/lib/prisma";
 import type { WritingStyle } from "@/types";
 
 // Vercel Hobby 最大 60s，Pro 可达 300s
@@ -82,10 +83,37 @@ export async function POST(request: Request) {
           }
 
           send({ type: "done", result });
+
+          // 保存续写结果到 Writing 表
+          try {
+            await prisma.writing.create({
+              data: {
+                userId,
+                sourceText: text.trim(),
+                resultText: JSON.stringify(result),
+                style: safeStyle,
+              },
+            });
+          } catch (saveErr) {
+            console.error("Cowrite save Writing failed (en, stream):", saveErr);
+          }
         });
       }
 
       const result = await cowriteContinueEn(text.trim(), safeStyle);
+      // 保存续写结果到 Writing 表
+      try {
+        await prisma.writing.create({
+          data: {
+            userId,
+            sourceText: text.trim(),
+            resultText: JSON.stringify(result),
+            style: safeStyle,
+          },
+        });
+      } catch (saveErr) {
+        console.error("Cowrite save Writing failed (en, non-stream):", saveErr);
+      }
       return new Response(JSON.stringify(result), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -114,10 +142,37 @@ export async function POST(request: Request) {
         }
 
         send({ type: "done", result });
+
+        // 保存续写结果到 Writing 表
+        try {
+          await prisma.writing.create({
+            data: {
+              userId,
+              sourceText: text.trim(),
+              resultText: JSON.stringify(result),
+              style: safeStyle,
+            },
+          });
+        } catch (saveErr) {
+          console.error("Cowrite save Writing failed (zh, stream):", saveErr);
+        }
       });
     }
 
     const result = await cowriteContinue(text.trim(), safeStyle);
+    // 保存续写结果到 Writing 表
+    try {
+      await prisma.writing.create({
+        data: {
+          userId,
+          sourceText: text.trim(),
+          resultText: JSON.stringify(result),
+          style: safeStyle,
+        },
+      });
+    } catch (saveErr) {
+      console.error("Cowrite save Writing failed (zh, non-stream):", saveErr);
+    }
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { "Content-Type": "application/json" },

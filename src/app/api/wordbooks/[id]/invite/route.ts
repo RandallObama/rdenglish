@@ -49,22 +49,23 @@ export async function POST(
     return NextResponse.json({ error: "只能邀请好友" }, { status: 403 });
   }
 
-  // 检查是否已是成员
-  const existingMember = await prisma.wordbookMember.findUnique({
-    where: { wordbookId_userId: { wordbookId, userId: friendId } },
-  });
-  if (existingMember) {
-    return NextResponse.json({ error: "该好友已在单词本中" }, { status: 409 });
+  // 原子化加入：利用数据库唯一约束避免竞态
+  // @@unique([wordbookId, userId]) 保证不会重复添加
+  try {
+    await prisma.wordbookMember.create({
+      data: {
+        wordbookId,
+        userId: friendId,
+        role: "editor",
+      },
+    });
+  } catch (error: unknown) {
+    // P2002 = Prisma unique constraint violation
+    if (error instanceof Error && (error as any)?.code === "P2002") {
+      return NextResponse.json({ error: "该好友已在单词本中" }, { status: 409 });
+    }
+    throw error;
   }
-
-  // 自动加入（因为是好友，不需要对方接受）
-  await prisma.wordbookMember.create({
-    data: {
-      wordbookId,
-      userId: friendId,
-      role: "editor",
-    },
-  });
 
   return NextResponse.json({ success: true });
 }

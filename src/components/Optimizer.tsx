@@ -346,17 +346,27 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
         />
 
         {/* 片段优化浮动按钮 */}
-        {selectedRange && !loading && (
+        {selectedRange && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
             <Button
               variant="default"
               size="sm"
               onClick={() => handleSubmit(true)}
+              disabled={loading}
               className="h-8 text-xs gap-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2"
               style={getBtnStyle("optimizer:fragment")}
             >
-              <Scissors className="h-3.5 w-3.5" />
-              优化选中片段 ({text.slice(selectedRange.start, selectedRange.end).trim().split(/\s+/).filter(Boolean).length} 词)
+              {loading ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  优化中...
+                </>
+              ) : (
+                <>
+                  <Scissors className="h-3.5 w-3.5" />
+                  优化选中片段 ({text.slice(selectedRange.start, selectedRange.end).trim().split(/\s+/).filter(Boolean).length} 词)
+                </>
+              )}
             </Button>
           </div>
         )}
@@ -402,18 +412,25 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
       <LoadingProgress loading={loading && streaming} label="正在深度优化中..." />
 
       {/* 全文优化按钮 */}
-      {!loading && (
-        <Button
-          onClick={() => handleSubmit(false)}
-          disabled={!text.trim()}
-          className="w-full"
-          size="lg"
-          style={getBtnStyle("optimizer:submit")}
-        >
-          <Send className="mr-2 h-4 w-4" />
-          开始{intensity === "light" ? "轻度" : intensity === "medium" ? "中度" : "深度"}优化
-        </Button>
-      )}
+      <Button
+        onClick={() => handleSubmit(false)}
+        disabled={!text.trim() || loading}
+        className="w-full"
+        size="lg"
+        style={getBtnStyle("optimizer:submit")}
+      >
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            优化中...
+          </>
+        ) : (
+          <>
+            <Send className="mr-2 h-4 w-4" />
+            开始{intensity === "light" ? "轻度" : intensity === "medium" ? "中度" : "深度"}优化
+          </>
+        )}
+      </Button>
     </div>
   );
 }
