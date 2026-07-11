@@ -22,11 +22,13 @@ import {
   Share2,
   ArrowRight,
   ArrowUpDown,
+  FileCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShareDialog } from "@/components/ShareDialog";
-import type { GrammarNote, VocabNote, ImprovementItem, TransitionAnalysis } from "@/types";
+import type { GrammarNote, VocabNote, ImprovementItem, TransitionAnalysis, SentenceOptimization } from "@/types";
+import { deduplicateGrammarNotes } from "@/lib/grammar-dedup";
 
 interface OptimizeResultProps {
   resultId?: string;
@@ -38,6 +40,7 @@ interface OptimizeResultProps {
   transitionAnalysis?: TransitionAnalysis;
   remaining: number;
   onTextReplace?: (newText: string) => void;
+  sentenceOptimizations?: SentenceOptimization[];
 }
 
 const levelVariant = {
@@ -83,6 +86,7 @@ export function OptimizeResult({
   transitionAnalysis,
   remaining,
   onTextReplace,
+  sentenceOptimizations,
 }: OptimizeResultProps) {
   const [copied, setCopied] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ id: string; type: "writing" } | null>(null);
@@ -154,21 +158,68 @@ export function OptimizeResult({
         )}
 
         {/* Tabs: 改进对照 | 语法笔记 | 词汇笔记 */}
-        <Tabs defaultValue="improvements">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="sentences">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="sentences" className="gap-1 text-xs">
+              <FileCheck className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">逐句优化</span>
+              <span className="sm:hidden">逐句</span>
+              ({sentenceOptimizations?.length || 0})
+            </TabsTrigger>
             <TabsTrigger value="improvements" className="gap-1 text-xs">
               <ArrowRight className="h-3.5 w-3.5" />
               改进对照 ({improvements.length})
             </TabsTrigger>
             <TabsTrigger value="grammar" className="gap-1 text-xs">
               <Lightbulb className="h-3.5 w-3.5" />
-              语法笔记 ({grammarNotes.length})
+              语法笔记 ({deduplicateGrammarNotes(grammarNotes).length})
             </TabsTrigger>
             <TabsTrigger value="vocab" className="gap-1 text-xs">
               <BookOpen className="h-3.5 w-3.5" />
               词汇笔记 ({vocabNotes.length})
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="sentences" className="mt-4 space-y-3">
+            {!sentenceOptimizations?.length ? (
+              <p className="text-sm text-muted-foreground text-center py-8">暂无逐句优化</p>
+            ) : (
+              sentenceOptimizations.map((so, i) => (
+                <div key={i} className="border rounded-lg p-4 space-y-3 bg-muted/10">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                      {i + 1}
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">#{i + 1}</span>
+                    {so.changes !== "无改动" && (
+                      <Badge variant="outline" className="text-xs text-green-600">有优化</Badge>
+                    )}
+                  </div>
+                  <div className="pl-7 space-y-2">
+                    <div>
+                      <span className="text-[10px] font-medium text-red-500 uppercase">Before</span>
+                      <p className="text-sm line-through text-red-600/60 bg-red-50 dark:bg-red-950/20 rounded px-3 py-1.5 mt-0.5">
+                        {so.original}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-medium text-green-500 uppercase">After</span>
+                      <p className="text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20 rounded px-3 py-1.5 mt-0.5">
+                        {so.optimized}
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-1.5 pt-1 border-t">
+                      <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-medium">改动：{so.changes}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">理由：{so.reason}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </TabsContent>
 
           {/* ========= 改进对照 Tab ========= */}
           <TabsContent value="improvements" className="mt-4 space-y-3">
@@ -227,7 +278,7 @@ export function OptimizeResult({
                 暂无语法要点
               </p>
             ) : (
-              grammarNotes.map((note, i) => (
+              deduplicateGrammarNotes(grammarNotes).map((note, i) => (
                 <CollapsibleSection
                   key={i}
                   summary={

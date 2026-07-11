@@ -4,6 +4,16 @@ import { prisma } from "@/lib/prisma";
 
 const CACHE_HEADER = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
 
+function safeJsonParse(val: string | null): unknown[] {
+  if (!val) return [];
+  try {
+    const parsed = JSON.parse(val);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -24,8 +34,8 @@ export async function GET() {
       function: g.function || "",
       structure: g.structure || "",
       explanation: g.explanation || "",
-      examples: g.examples ? JSON.parse(g.examples) : [],
-      commonMistakes: g.commonMistakes ? JSON.parse(g.commonMistakes) : [],
+      examples: safeJsonParse(g.examples),
+      commonMistakes: safeJsonParse(g.commonMistakes),
       examTip: g.examTip || "",
       source: g.source,
       createdAt: g.createdAt.toISOString(),

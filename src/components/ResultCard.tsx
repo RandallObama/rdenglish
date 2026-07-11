@@ -18,13 +18,15 @@ import {
   Link2,
   ArrowLeftRight,
   Sparkles,
+  FileCheck,
   XCircle,
   Share2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShareDialog } from "@/components/ShareDialog";
-import type { GrammarNote, VocabNote, ShareContentType } from "@/types";
+import type { GrammarNote, SentenceTranslationReview, VocabNote, ShareContentType } from "@/types";
+import { deduplicateGrammarNotes } from "@/lib/grammar-dedup";
 
 interface ResultCardProps {
   resultId?: string;
@@ -32,6 +34,7 @@ interface ResultCardProps {
   grammarNotes: GrammarNote[];
   vocabNotes: VocabNote[];
   remaining: number;
+  sentenceReviews?: SentenceTranslationReview[];
 }
 
 const levelVariant = {
@@ -46,6 +49,7 @@ export function ResultCard({
   grammarNotes,
   vocabNotes,
   remaining,
+  sentenceReviews,
 }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ id: string; type: ShareContentType } | null>(null);
@@ -89,17 +93,55 @@ export function ResultCard({
         </div>
 
         {/* 语法 & 词汇 */}
-        <Tabs defaultValue="grammar">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="sentences">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="sentences" className="gap-1 text-xs">
+              <FileCheck className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">逐句点评</span>
+              <span className="sm:hidden">逐句</span>
+              ({sentenceReviews?.length || 0})
+            </TabsTrigger>
             <TabsTrigger value="grammar" className="gap-1">
               <Lightbulb className="h-4 w-4" />
-              语法要点 ({grammarNotes.length})
+              语法要点 ({deduplicateGrammarNotes(grammarNotes).length})
             </TabsTrigger>
             <TabsTrigger value="vocab" className="gap-1">
               <BookOpen className="h-4 w-4" />
               词汇笔记 ({vocabNotes.length})
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="sentences" className="mt-4 space-y-3">
+            {!sentenceReviews?.length ? (
+              <p className="text-sm text-muted-foreground text-center py-8">暂无逐句点评</p>
+            ) : (
+              sentenceReviews.map((sr, i) => (
+                <div key={i} className="border rounded-lg p-4 space-y-2 bg-muted/10">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                      {i + 1}
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">原文</span>
+                  </div>
+                  <p className="text-sm pl-7">{sr.sourceSentence}</p>
+                  <div className="pl-7">
+                    <span className="text-xs font-medium text-muted-foreground">译文</span>
+                    <p className="text-sm text-green-700 dark:text-green-400 mt-0.5">{sr.translatedSentence}</p>
+                  </div>
+                  <div className="pl-7">
+                    <span className="text-xs font-medium text-muted-foreground">点评</span>
+                    <p className="text-sm text-muted-foreground mt-0.5">{sr.quality}</p>
+                  </div>
+                  {sr.suggestions && (
+                    <div className="pl-7">
+                      <span className="text-xs font-medium text-muted-foreground">建议</span>
+                      <p className="text-sm text-muted-foreground mt-0.5">💡 {sr.suggestions}</p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </TabsContent>
 
           {/* ========= 语法标签页 ========= */}
           <TabsContent value="grammar" className="mt-4 space-y-3">
@@ -108,7 +150,7 @@ export function ResultCard({
                 暂无语法要点
               </p>
             ) : (
-              grammarNotes.map((note, i) => (
+              deduplicateGrammarNotes(grammarNotes).map((note, i) => (
                 <CollapsibleSection
                   key={i}
                   summary={

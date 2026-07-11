@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { readSSE } from "@/lib/stream";
 import { getBtnStyle } from "@/lib/button-colors";
-import type { GrammarNote, VocabNote, ExamType, WritingStyle } from "@/types";
+import type { GrammarNote, VocabNote, ExamType, WritingStyle, SentenceTranslationReview } from "@/types";
 
 interface WriterProps {
   onResult: (result: {
@@ -27,6 +27,7 @@ interface WriterProps {
     grammarNotes: GrammarNote[];
     vocabNotes: VocabNote[];
     remaining: number;
+    sentenceReviews?: SentenceTranslationReview[];
   }) => void;
   onError: (error: string) => void;
 }

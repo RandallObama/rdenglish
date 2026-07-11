@@ -176,6 +176,11 @@ export function VocabDailySettlement({
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">{w.usage}</p>
+                  {w.etymology && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      📚 {w.etymology}
+                    </p>
+                  )}
                 </div>
 
                 <span className="text-2xl font-bold text-muted-foreground/20">

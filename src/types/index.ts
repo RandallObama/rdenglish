@@ -40,6 +40,16 @@ export interface TranslationResult {
   english: string;
   grammarNotes: GrammarNote[];
   vocabNotes: VocabNote[];
+  /** 逐句翻译质量点评 */
+  sentenceReviews?: SentenceTranslationReview[];
+}
+
+/** 逐句翻译点评 */
+export interface SentenceTranslationReview {
+  sourceSentence: string;     // 中文原句
+  translatedSentence: string;  // 对应英文翻译
+  quality: string;             // 质量评价（中文）
+  suggestions?: string;        // 改进建议（如有）
 }
 
 // ========== 作文批改 ==========
@@ -172,6 +182,16 @@ export interface OptimizeResult {
   vocabNotes: VocabNote[];
   highlights: string;
   transitionAnalysis?: TransitionAnalysis;
+  /** 逐句优化说明 */
+  sentenceOptimizations?: SentenceOptimization[];
+}
+
+/** 逐句优化说明 */
+export interface SentenceOptimization {
+  original: string;
+  optimized: string;
+  changes: string;   // 做了哪些改动（中文）
+  reason: string;     // 优化理由（中文）
 }
 
 export interface OptimizationRecord {
@@ -352,6 +372,8 @@ export interface WordItem {
   collocations: string[];
   usage: string;
   example: string;
+  /** 词源讲解（中文），包含词根词缀分析 */
+  etymology?: string;
 }
 
 export interface DailyVocabSession {

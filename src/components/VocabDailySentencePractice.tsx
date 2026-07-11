@@ -148,6 +148,12 @@ export function VocabDailySentencePractice({
         <div className="text-sm text-muted-foreground italic">
           📖 {word.example}
         </div>
+        {word.etymology && (
+          <div className="text-sm mt-2 pt-2 border-t border-dashed" style={{ borderColor: "#ABD1C6" }}>
+            <span className="font-medium">📚 词源：</span>
+            <span className="text-muted-foreground">{word.etymology}</span>
+          </div>
+        )}
       </div>
 
       {/* 评价结果 */}

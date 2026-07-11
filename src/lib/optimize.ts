@@ -185,8 +185,18 @@ ${i.scope}
 - optimized: 优化后的版本
 - reason: 改动的教育理由（用中文，至少 1 句话，能帮学生理解为什么要这样改）
 
+## 逐句优化说明要求
+对优化后的文本按句拆分，说明每句话做了哪些改动、为什么这样改。每条包含：
+- original: 原句
+- optimized: 优化后的句子
+- changes: 做了哪些改动（中文，1-2句话概括）
+- reason: 优化理由（中文，解释为什么这样改更好）
+
 ## 语法分析要求
+⚠️ 语法点去重规则：本质相同的语法点必须合并。例如"时态不一致"、"时态错误"统一为"时态问题"；"主谓不一致"统一为"主谓一致问题"。合并后在explanation中覆盖全部子问题。
+
 挑选 2-4 个优化过程中最值得学习的语法点，每个包含：
+如果优化过程中没有涉及值得学习的语法点，grammarNotes可以为空数组。
 - point: 语法点名称（中文）
 - level: 难度级别（"基础"/"进阶"/"高级"）
 - function: 该语法在文中的表达功能
@@ -239,6 +249,14 @@ ${i.scope}
 {
   "optimizedText": "优化后的英文文本",
   "improvements": [{ "category": "...", "original": "...", "optimized": "...", "reason": "..." }],
+  "sentenceOptimizations": [
+    {
+      "original": "原句",
+      "optimized": "优化后",
+      "changes": "改动说明（中文）",
+      "reason": "优化理由（中文）"
+    }
+  ],
   "grammarNotes": [...],
   "vocabNotes": [...],
   "highlights": "亮点总结"

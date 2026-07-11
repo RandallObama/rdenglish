@@ -104,6 +104,7 @@ function makeGeneratePrompt(
 - collocations: 3 个常用搭配（词组形式）
 - usage: 用法说明（中文，1-2 句话，讲清什么时候用、怎么用）
 - example: 一句完整的英语例句，展示该词的自然用法
+- etymology: 词源讲解（中文，1-3句话），包含该词的词根（root）、词缀（prefix/suffix）分析，以及相关的同根词举例。例如："pedestrian — ped-（脚）+ -ian（人），同根词：pedal（踏板）、expedite（加速，ex-=向外+ped-=脚→迈步向前）"
 
 ## 输出格式（纯 JSON，不要 markdown 代码块）
 {
@@ -116,7 +117,8 @@ function makeGeneratePrompt(
       "definition": "英语定义",
       "collocations": ["搭配1", "搭配2", "搭配3"],
       "usage": "用法说明（中文）",
-      "example": "完整英语例句"
+      "example": "完整英语例句",
+      "etymology": "词源讲解（中文）"
     }
   ],
   "difficulty": "${difficulty}"

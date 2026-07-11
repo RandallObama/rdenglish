@@ -6,7 +6,7 @@ import { Writer } from "@/components/Writer";
 import { FeatureGuide } from "@/components/FeatureGuide";
 import { PenLine, ScanEye, Wand2 } from "lucide-react";
 import { toast } from "sonner";
-import type { GrammarNote, VocabNote } from "@/types";
+import type { GrammarNote, VocabNote, SentenceTranslationReview } from "@/types";
 
 const ResultCard = dynamic(
   () => import("@/components/ResultCard").then((m) => m.ResultCard),
@@ -28,6 +28,7 @@ export default function WriteClient() {
     grammarNotes: GrammarNote[];
     vocabNotes: VocabNote[];
     remaining: number;
+    sentenceReviews?: SentenceTranslationReview[];
   } | null>(null);
 
   const handleResult = useCallback(
@@ -37,6 +38,7 @@ export default function WriteClient() {
       grammarNotes: GrammarNote[];
       vocabNotes: VocabNote[];
       remaining: number;
+      sentenceReviews?: SentenceTranslationReview[];
     }) => {
       setResult(data);
       toast.success("翻译完成！");
@@ -88,6 +90,7 @@ export default function WriteClient() {
           grammarNotes={result.grammarNotes}
           vocabNotes={result.vocabNotes}
           remaining={result.remaining}
+          sentenceReviews={result.sentenceReviews}
         />
       )}
     </div>

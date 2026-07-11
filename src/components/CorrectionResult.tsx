@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ShareDialog } from "@/components/ShareDialog";
 import type { CorrectionResult as CorrectionResultType, ExamType, ShareContentType } from "@/types";
+import { deduplicateGrammarNotes } from "@/lib/grammar-dedup";
 
 interface Props {
   result: CorrectionResultType;
@@ -142,7 +143,7 @@ export function CorrectionResult({ result, remaining, correctionId }: Props) {
               <Lightbulb className="h-3.5 w-3.5 shrink-0" />
               <span className="sm:hidden">语法</span>
               <span className="hidden sm:inline">语法问题</span>
-              ({result.grammarIssues?.length || 0})
+              ({deduplicateGrammarNotes(result.grammarIssues || []).length})
             </TabsTrigger>
             <TabsTrigger value="vocab" className="gap-1 text-xs">
               <BookOpen className="h-3.5 w-3.5 shrink-0" />
@@ -210,7 +211,7 @@ export function CorrectionResult({ result, remaining, correctionId }: Props) {
             {!result.grammarIssues?.length ? (
               <p className="text-sm text-muted-foreground text-center py-4">无语法问题</p>
             ) : (
-              result.grammarIssues.map((note, i) => (
+              deduplicateGrammarNotes(result.grammarIssues || []).map((note, i) => (
                 <CollapsibleSection
                   key={i}
                   summary={

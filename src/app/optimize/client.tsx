@@ -20,7 +20,7 @@ const OptimizeResult = dynamic(
   }
 );
 import { toast } from "sonner";
-import type { GrammarNote, VocabNote, ImprovementItem, TransitionAnalysis } from "@/types";
+import type { GrammarNote, VocabNote, ImprovementItem, TransitionAnalysis, SentenceOptimization } from "@/types";
 
 export default function OptimizeClient() {
   const [result, setResult] = useState<{
@@ -31,6 +31,7 @@ export default function OptimizeClient() {
     vocabNotes: VocabNote[];
     highlights: string;
     transitionAnalysis?: TransitionAnalysis;
+    sentenceOptimizations?: SentenceOptimization[];
     remaining: number;
   } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -80,6 +81,7 @@ export default function OptimizeClient() {
       vocabNotes: VocabNote[];
       highlights: string;
       transitionAnalysis?: TransitionAnalysis;
+      sentenceOptimizations?: SentenceOptimization[];
       remaining: number;
     }) => {
       setResult(data);
@@ -156,6 +158,7 @@ export default function OptimizeClient() {
           vocabNotes={result.vocabNotes}
           highlights={result.highlights}
           transitionAnalysis={result.transitionAnalysis}
+          sentenceOptimizations={result.sentenceOptimizations}
           remaining={result.remaining}
         />
       )}
