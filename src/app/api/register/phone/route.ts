@@ -12,14 +12,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { isValidChinesePhone, normalizePhone, maskPhone } from "@/lib/phone-utils";
-import { extractClientIp, checkSmsIpLimit } from "@/lib/rate-limit-sms";
+import { extractClientIp, checkRegisterRateLimit } from "@/lib/rate-limit-register";
 
 export async function POST(request: Request) {
   const ip = extractClientIp(request);
 
-  // IP 级注册频率限制（复用短信限速器，防止绕过验证码暴力尝试）
-  const ipCheck = checkSmsIpLimit(ip);
-  if (!ipCheck.allowed) {
+  // IP 级注册频率限制（与邮箱注册共用限速器）
+  const { allowed } = checkRegisterRateLimit(ip);
+  if (!allowed) {
     return NextResponse.json(
       { error: "注册过于频繁，请稍后再试" },
       { status: 429 }
