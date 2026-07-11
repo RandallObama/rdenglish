@@ -2,8 +2,12 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getBtnStyle } from "@/lib/button-colors";
 import { WeekendChallengeBadge } from "@/components/WeekendChallengeBadge";
+
+/** 三个仪表盘按钮统一的深色方块样式 */
+const BTN_STYLE = { color: "#ABD1C6", backgroundColor: "#312F2C" };
+const BTN_CLASS =
+  "group flex items-center justify-center w-40 h-40 sm:w-48 sm:h-48 rounded-2xl text-lg sm:text-xl font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -24,21 +28,17 @@ export default async function DashboardPage() {
           className="w-full max-w-[640px] h-auto dark:invert"
         />
       </div>
-      <div className="flex flex-col sm:flex-row gap-6 sm:gap-10">
-        <Link
-          href="/start-writing"
-          className="group flex items-center justify-center w-48 h-48 sm:w-56 sm:h-56 rounded-2xl text-xl sm:text-2xl font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg"
-          style={getBtnStyle("dashboard:write")}
-        >
+      <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
+        <Link href="/start-writing" className={BTN_CLASS} style={BTN_STYLE}>
           开始写作
         </Link>
 
-        <Link
-          href="/tools"
-          className="group flex items-center justify-center w-48 h-48 sm:w-56 sm:h-56 rounded-2xl text-xl sm:text-2xl font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg"
-          style={{ color: "#312F2C", backgroundColor: "#ABD1C6" }}
-        >
+        <Link href="/tools" className={BTN_CLASS} style={BTN_STYLE}>
           小工具
+        </Link>
+
+        <Link href="/vocab-daily" className={BTN_CLASS} style={BTN_STYLE}>
+          每日5词
         </Link>
       </div>
 

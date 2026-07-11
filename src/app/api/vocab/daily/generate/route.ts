@@ -8,7 +8,7 @@ import { auth } from "@/lib/auth";
 import { checkAiRpm } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import {
-  inferUserExamLevel,
+  getRandomProfile,
   generateWords,
   regenerateWordsSameTopic,
 } from "@/lib/vocab-daily";
@@ -42,8 +42,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    // 获取用户画像
-    const profile = await inferUserExamLevel(userId);
+    // 完全随机生成用户画像（不依赖历史批改记录）
+    const profile = getRandomProfile();
 
     let topic: string;
     let difficulty: string;
@@ -64,11 +64,11 @@ export async function POST(request: Request) {
 
       words = await regenerateWordsSameTopic(topic, difficulty, profile.examType);
     } else {
-      // 全新生成
-      topic = requestTopic || "auto";
+      // 全新生成 — 完全随机话题和难度
+      topic = "auto";
       difficulty = profile.difficulty;
 
-      words = await generateWords(topic, profile.examType, difficulty, profile.previousTopics);
+      words = await generateWords(topic, profile.examType, difficulty);
     }
 
     // 保存/更新 session

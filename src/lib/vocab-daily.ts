@@ -4,7 +4,6 @@
  */
 
 import { aiClient } from "@/lib/ai-client";
-import { prisma } from "@/lib/prisma";
 import type { ExamType, WordItem, SentenceEvaluationResult, ScenarioTurnResult } from "@/types";
 
 // ═══════════════════════════════════════════════════════════
@@ -37,26 +36,17 @@ const TOPIC_POOL = [
   "未来趋势与科幻", "家庭关系与代际沟通",
 ];
 
-/** 排除已用过的话题，随机挑选 */
-function pickTopic(previousTopics: string[] = []): string {
-  const available = TOPIC_POOL.filter((t) => !previousTopics.includes(t));
-  const pool = available.length > 0 ? available : TOPIC_POOL;
-  return pool[Math.floor(Math.random() * pool.length)]!;
+/** 完全随机挑选话题 */
+function pickTopic(): string {
+  return TOPIC_POOL[Math.floor(Math.random() * TOPIC_POOL.length)]!;
 }
 
 // ═══════════════════════════════════════════════════════════
-// 难度映射
+// 随机参数池
 // ═══════════════════════════════════════════════════════════
 
-const EXAM_DIFFICULTY_MAP: Record<string, string> = {
-  middle: "easy",
-  high: "medium",
-  cet4: "medium",
-  cet6: "hard",
-  ielts: "hard",
-  general: "medium",
-  literary: "hard",
-};
+const EXAM_TYPES: ExamType[] = ["middle", "high", "cet4", "cet6", "ielts"];
+const DIFFICULTIES = ["easy", "medium", "hard"];
 
 const DIFFICULTY_LABELS: Record<string, string> = {
   easy: "初级（中考/基础）",
@@ -64,66 +54,23 @@ const DIFFICULTY_LABELS: Record<string, string> = {
   hard: "高级（CET6/雅思/托福）",
 };
 
+function randomPick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]!;
+}
+
 // ═══════════════════════════════════════════════════════════
-// 1. inferUserExamLevel — 从用户历史记录推断考试标准
+// 1. getRandomProfile — 完全随机生成用户画像（不依赖历史记录）
 // ═══════════════════════════════════════════════════════════
 
 export interface UserExamProfile {
   examType: ExamType;
   difficulty: string;
-  previousTopics: string[];
 }
 
-export async function inferUserExamLevel(userId: string): Promise<UserExamProfile> {
-  // 1. 检查最近的 Correction 记录
-  const recentCorrections = await prisma.correction.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-    select: { examType: true },
-  });
-
-  // 2. 检查 Writing 记录
-  const recentWritings = await prisma.writing.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-    select: { examType: true },
-  });
-
-  // 3. 检查 Optimization 记录
-  const recentOptimizations = await prisma.optimization.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-    select: { examType: true },
-  });
-
-  // 合并所有 examType，取众数
-  const allTypes = [...recentCorrections, ...recentWritings, ...recentOptimizations]
-    .map((r) => r.examType)
-    .filter((t) => t !== "general" && t !== "literary");
-  // ^ 排除 general/literary，它们不映射到具体考试标准
-
-  let examType: ExamType = "cet4";
-  if (allTypes.length > 0) {
-    const counts: Record<string, number> = {};
-    allTypes.forEach((t) => { counts[t] = (counts[t] || 0) + 1; });
-    examType = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]![0] as ExamType;
-  }
-
-  const difficulty = EXAM_DIFFICULTY_MAP[examType] || "medium";
-
-  // 获取用户最近使用过的话题（避免重复）
-  const recentSessions = await prisma.dailyWordSession.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 15,
-    select: { topic: true },
-  });
-  const previousTopics = recentSessions.map((s) => s.topic);
-
-  return { examType, difficulty, previousTopics };
+export function getRandomProfile(): UserExamProfile {
+  const examType = randomPick(EXAM_TYPES);
+  const difficulty = randomPick(DIFFICULTIES);
+  return { examType, difficulty };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -178,10 +125,9 @@ function makeGeneratePrompt(
 export async function generateWords(
   topic: string | undefined,
   examType: string,
-  difficulty: string,
-  previousTopics: string[] = []
+  difficulty: string
 ): Promise<{ topic: string; words: WordItem[]; difficulty: string }> {
-  const selectedTopic = topic || pickTopic(previousTopics);
+  const selectedTopic = topic && topic !== "auto" ? topic : pickTopic();
 
   const systemPrompt = makeGeneratePrompt(selectedTopic, examType, difficulty);
 

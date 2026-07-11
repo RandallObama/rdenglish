@@ -37,6 +37,7 @@ export function VocabDailyClient() {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [scenarioTurns, setScenarioTurns] = useState<ScenarioTurnResult[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   // ── 加载今日会话状态 ──
   const loadStatus = useCallback(async () => {
@@ -47,6 +48,10 @@ export function VocabDailyClient() {
         return;
       }
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "加载失败");
+      }
 
       if (!data.hasSession) {
         setPhase("generating");
@@ -79,6 +84,7 @@ export function VocabDailyClient() {
           setPhase("difficulty_check");
       }
     } catch {
+      setLoadError(true);
       toast.error("加载失败，请刷新页面重试");
     }
   }, []);
@@ -87,6 +93,7 @@ export function VocabDailyClient() {
   const generateWords = useCallback(
     async (action: "generate" | "adjust" = "generate", newDifficulty?: string) => {
       setGenerating(true);
+      setLoadError(false);
       try {
         const res = await fetch("/api/vocab/daily/generate", {
           method: "POST",
@@ -100,12 +107,14 @@ export function VocabDailyClient() {
         if (res.status === 429) {
           const data = await res.json();
           toast.error(data.error || "请求过于频繁");
+          setLoadError(true);
           return;
         }
 
         const data = await res.json();
         if (!res.ok) {
           toast.error(data.error || "生成失败");
+          setLoadError(true);
           return;
         }
 
@@ -121,6 +130,7 @@ export function VocabDailyClient() {
         });
         setPhase("difficulty_check");
       } catch {
+        setLoadError(true);
         toast.error("网络错误，请稍后重试");
       } finally {
         setGenerating(false);
@@ -215,6 +225,25 @@ export function VocabDailyClient() {
   }, [loadStatus]);
 
   // ── 渲染各阶段 ──
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <p className="text-muted-foreground text-lg">加载失败，请重试</p>
+        <button
+          onClick={() => {
+            setLoadError(false);
+            setPhase("loading");
+            loadStatus();
+          }}
+          className="px-6 py-3 rounded-xl text-white font-bold transition-all hover:scale-105"
+          style={{ backgroundColor: "#312F2C", color: "#ABD1C6" }}
+        >
+          重新加载
+        </button>
+      </div>
+    );
+  }
+
   if (phase === "loading" || (phase === "generating" && generating)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
