@@ -73,10 +73,12 @@ export async function POST(request: Request) {
         };
         existingMessages.push(userTurn);
 
-        // 获取已使用的全部词汇
+        // 获取已使用的全部词汇（只信任 AI 判定，用户消息中的 usedWords 不做为权威来源）
         const usedWordsSet = new Set<string>();
         existingMessages.forEach((m: any) => {
-          (m.usedWords || []).forEach((w: string) => usedWordsSet.add(w));
+          if (m.role === "ai") {
+            (m.usedWords || []).forEach((w: string) => usedWordsSet.add(w));
+          }
         });
 
         const iter = streamContinueScenario(

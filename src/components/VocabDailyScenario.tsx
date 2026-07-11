@@ -30,10 +30,12 @@ export function VocabDailyScenario({
   const [completed, setCompleted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 从已有 turns 中提取已使用的词汇
+  // 从已有 turns 中提取已使用的词汇（只信任 AI 判定，用户消息中的乐观标记不作为权威来源）
   const usedWordsSet = new Set<string>();
   turns.forEach((t) => {
-    t.usedWords?.forEach((w) => usedWordsSet.add(w));
+    if (t.role === "ai") {
+      t.usedWords?.forEach((w) => usedWordsSet.add(w));
+    }
   });
 
   const allUsedWords = Array.from(usedWordsSet);
@@ -58,7 +60,7 @@ export function VocabDailyScenario({
   const handleSend = useCallback(async () => {
     if (!message.trim() || loading) return;
 
-    // 检测用户消息中是否使用了目标词汇
+    // 检测用户消息中是否包含了目标词汇（发送给后端作为参考，但最终由 AI 判定）
     const usedInMessage: string[] = [];
     words.forEach((w) => {
       if (
@@ -66,7 +68,7 @@ export function VocabDailyScenario({
         message.toLowerCase().includes(w.word.toLowerCase())
       ) {
         usedInMessage.push(w.word);
-        usedWordsSet.add(w.word);
+        // 不再本地乐观标记，等待 AI 判定后再标记为已使用
       }
     });
 
@@ -254,7 +256,7 @@ export function VocabDailyScenario({
               )}
               {turn.role === "user" && turn.usedWords && turn.usedWords.length > 0 && (
                 <div className="mt-1 text-xs opacity-75">
-                  ✅ {turn.usedWords.join(", ")}
+                  💬 尝试使用：{turn.usedWords.join(", ")}
                 </div>
               )}
             </div>

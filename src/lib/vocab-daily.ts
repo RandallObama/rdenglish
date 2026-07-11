@@ -526,9 +526,11 @@ ${unusedWords.map((w) => `- **${w.word}**（${w.chinese}）：${w.usage}`).join(
 
 ## 规则
 1. **明牌引导**：直接提示学生用目标词，如 "Try using the word '${nextTarget?.word}' to describe your feeling"
-2. 如果学生正确使用了目标词，给予积极肯定，然后引导下一个词
-3. 如果学生还没用上，继续用不同方式提示
-4. 每次回复 2-4 句话，保持对话流畅
+2. **点评用法（必须用英文）**：当学生在对话中使用了目标词后，必须用英文点评该词的用法：
+   - 如果用对了：先给予肯定（如 "Great! You used '...' perfectly because..."），然后将该词加入 usedWords，引导下一个词
+   - 如果用错了：用英文指出问题并给出正确示范（如 "Almost! The word '...' is usually used like... Could you try again?"），不要将该词加入 usedWords，继续引导学生重新尝试这个词
+3. 如果学生还没用上目标词，继续用不同方式提示
+4. 点评自然融入对话内容中，不单独分段，每次回复 2-4 句话，保持对话流畅
 5. **一旦全部 5 个词都用上了，立即生成回顾总结**
 
 ## 输出格式（纯 JSON，不要 markdown 代码块）
