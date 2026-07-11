@@ -15,34 +15,39 @@ function safeJsonParse(val: string | null): unknown[] {
 }
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    }
+
+    const words = await prisma.savedWord.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+
+    return NextResponse.json(
+      words.map((w) => ({
+        id: w.id,
+        word: w.word,
+        chinese: w.chinese,
+        collocations: safeJsonParse(w.collocations),
+        synonyms: safeJsonParse(w.synonyms),
+        level: w.level || "",
+        usage: w.usage || "",
+        examples: safeJsonParse(w.examples),
+        commonErrors: safeJsonParse(w.commonErrors),
+        examFocus: w.examFocus || "",
+        source: w.source,
+        createdAt: w.createdAt.toISOString(),
+      })),
+      { headers: CACHE_HEADER }
+    );
+  } catch (error) {
+    console.error("GET /api/notebook/word error:", error);
+    return NextResponse.json({ error: "加载失败，请稍后重试" }, { status: 500 });
   }
-
-  const words = await prisma.savedWord.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-
-  return NextResponse.json(
-    words.map((w) => ({
-      id: w.id,
-      word: w.word,
-      chinese: w.chinese,
-      collocations: safeJsonParse(w.collocations),
-      synonyms: safeJsonParse(w.synonyms),
-      level: w.level || "",
-      usage: w.usage || "",
-      examples: safeJsonParse(w.examples),
-      commonErrors: safeJsonParse(w.commonErrors),
-      examFocus: w.examFocus || "",
-      source: w.source,
-      createdAt: w.createdAt.toISOString(),
-    })),
-    { headers: CACHE_HEADER }
-  );
 }
 
 export async function POST(request: Request) {

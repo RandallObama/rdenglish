@@ -15,33 +15,38 @@ function safeJsonParse(val: string | null): unknown[] {
 }
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    }
+
+    const items = await prisma.savedGrammar.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+
+    return NextResponse.json(
+      items.map((g) => ({
+        id: g.id,
+        point: g.point,
+        level: g.level || "",
+        function: g.function || "",
+        structure: g.structure || "",
+        explanation: g.explanation || "",
+        examples: safeJsonParse(g.examples),
+        commonMistakes: safeJsonParse(g.commonMistakes),
+        examTip: g.examTip || "",
+        source: g.source,
+        createdAt: g.createdAt.toISOString(),
+      })),
+      { headers: CACHE_HEADER }
+    );
+  } catch (error) {
+    console.error("GET /api/notebook/grammar error:", error);
+    return NextResponse.json({ error: "加载失败，请稍后重试" }, { status: 500 });
   }
-
-  const items = await prisma.savedGrammar.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-
-  return NextResponse.json(
-    items.map((g) => ({
-      id: g.id,
-      point: g.point,
-      level: g.level || "",
-      function: g.function || "",
-      structure: g.structure || "",
-      explanation: g.explanation || "",
-      examples: safeJsonParse(g.examples),
-      commonMistakes: safeJsonParse(g.commonMistakes),
-      examTip: g.examTip || "",
-      source: g.source,
-      createdAt: g.createdAt.toISOString(),
-    })),
-    { headers: CACHE_HEADER }
-  );
 }
 
 export async function POST(request: Request) {
