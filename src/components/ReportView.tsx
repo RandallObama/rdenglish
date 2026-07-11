@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
+import { useQuery } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -157,14 +158,6 @@ export default function ReportView() {
   const [periodType, setPeriodType] = useState<ReportPeriodType>("week");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const [reportData, setReportData] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // AI 评语状态
-  const [insights, setInsights] = useState<string | null>(null);
-  const [insightsLoading, setInsightsLoading] = useState(false);
-  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   // 身份检查
   useEffect(() => {
@@ -173,14 +166,15 @@ export default function ReportView() {
     }
   }, [status]);
 
-  // 获取报告数据
-  const fetchReport = useCallback(async () => {
-    if (status !== "authenticated") return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
+  // ── 获取报告数据（React Query 自动缓存，30 秒内不重复请求）──
+  const {
+    data: reportData,
+    isLoading: loading,
+    error: reportError,
+    refetch,
+  } = useQuery({
+    queryKey: ["report", periodType, customStart, customEnd],
+    queryFn: async () => {
       const params = new URLSearchParams();
       params.set("period", periodType);
       if (periodType === "custom") {
@@ -194,21 +188,21 @@ export default function ReportView() {
         throw new Error(body.error || "加载失败");
       }
 
-      const data: ReportData = await res.json();
-      setReportData(data);
-      // 切换周期时清除旧的 AI 评语
-      setInsights(null);
-      setInsightsError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
-    } finally {
-      setLoading(false);
-    }
-  }, [periodType, customStart, customEnd, status]);
+      return res.json() as Promise<ReportData>;
+    },
+    enabled: status === "authenticated",
+  });
 
+  // AI 评语状态
+  const [insights, setInsights] = useState<string | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
+
+  // 切换周期时清除旧的 AI 评语
   useEffect(() => {
-    fetchReport();
-  }, [fetchReport]);
+    setInsights(null);
+    setInsightsError(null);
+  }, [periodType, customStart, customEnd]);
 
   // 生成 AI 学习总结
   const handleGenerateInsights = async () => {
@@ -262,13 +256,13 @@ export default function ReportView() {
   }
 
   // ── 错误状态 ──
-  if (error || !reportData) {
+  if (reportError || !reportData) {
     return (
       <div className="container mx-auto px-4 py-16 max-w-4xl text-center">
         <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h2 className="text-lg font-semibold mb-2">加载失败</h2>
-        <p className="text-muted-foreground mb-4">{error || "暂无数据"}</p>
-        <Button onClick={fetchReport} style={getBtnStyle("report:reload")}>重新加载</Button>
+        <p className="text-muted-foreground mb-4">{reportError?.message || "暂无数据"}</p>
+        <Button onClick={() => refetch()} style={getBtnStyle("report:reload")}>重新加载</Button>
       </div>
     );
   }
@@ -336,7 +330,7 @@ export default function ReportView() {
             onChange={(e) => setCustomEnd(e.target.value)}
             className="rounded-md border bg-background px-3 py-1.5 text-sm"
           />
-          <Button size="sm" onClick={fetchReport} disabled={!customStart || !customEnd} style={getBtnStyle("report:query")}>
+          <Button size="sm" onClick={() => refetch()} disabled={!customStart || !customEnd} style={getBtnStyle("report:query")}>
             查询
           </Button>
         </div>

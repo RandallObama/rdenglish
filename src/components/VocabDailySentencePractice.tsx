@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { getBtnStyle } from "@/lib/button-colors";
+import { readSSE } from "@/lib/stream";
 import type { WordItem, SentenceEvaluationResult } from "@/types";
 
 interface Props {
@@ -47,25 +48,35 @@ export function VocabDailySentencePractice({
         }),
       });
 
-      const data = await res.json();
       if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "提交失败" }));
         toast.error(data.error || "提交失败");
+        setLoading(false);
         return;
       }
 
-      const evalResult = {
-        score: data.score,
-        stars: data.stars,
-        semanticCorrect: data.semanticCorrect,
-        grammarCorrect: data.grammarCorrect,
-        naturalness: data.naturalness,
-        comment: data.comment,
-        suggestedImprovement: data.suggestedImprovement,
-        creativeBonus: data.creativeBonus,
-      };
-      setEvaluation(evalResult);
-
-      toast.success(evalResult.score >= 4 ? "很不错！" : "已收到评价");
+      // 使用 SSE 流式接收 AI 评价
+      for await (const event of readSSE(res)) {
+        if (event.type === "chunk") {
+          // AI 正在输出评价内容
+        } else if (event.type === "done") {
+          const data = event.result as any;
+          const evalResult = {
+            score: data.score,
+            stars: data.stars,
+            semanticCorrect: data.semanticCorrect,
+            grammarCorrect: data.grammarCorrect,
+            naturalness: data.naturalness,
+            comment: data.comment,
+            suggestedImprovement: data.suggestedImprovement,
+            creativeBonus: data.creativeBonus,
+          };
+          setEvaluation(evalResult);
+          toast.success(evalResult.score >= 4 ? "很不错！" : "已收到评价");
+        } else if (event.type === "error") {
+          toast.error(event.message);
+        }
+      }
     } catch {
       toast.error("网络错误，请稍后重试");
     } finally {

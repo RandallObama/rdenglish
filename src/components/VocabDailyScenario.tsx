@@ -5,6 +5,7 @@ import { Loader2, Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { getBtnStyle } from "@/lib/button-colors";
+import { readSSE } from "@/lib/stream";
 import type { WordItem, ScenarioTurnResult } from "@/types";
 
 interface Props {
@@ -25,6 +26,7 @@ export function VocabDailyScenario({
   const [turns, setTurns] = useState<ScenarioTurnResult[]>(initialTurns);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState<string | null>(null); // AI 正在输入的文本
   const [completed, setCompleted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +70,20 @@ export function VocabDailyScenario({
       }
     });
 
+    // 立即添加用户消息到对话
+    const userTurn: ScenarioTurnResult = {
+      role: "user",
+      content: message.trim(),
+      usedWords: usedInMessage,
+      allUsedWords: [],
+      completed: false,
+    };
+
+    setTurns((prev) => [...prev, userTurn]);
+    setMessage("");
     setLoading(true);
+    setStreamingText(""); // 开始流式接收 AI 回复
+
     try {
       const res = await fetch("/api/vocab/daily/scenario", {
         method: "POST",
@@ -76,52 +91,56 @@ export function VocabDailyScenario({
         body: JSON.stringify({
           sessionId,
           action: "respond",
-          message: message.trim(),
+          message: userTurn.content,
           usedWords: usedInMessage,
         }),
       });
 
-      const data = await res.json();
       if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "请求失败" }));
         toast.error(data.error || "请求失败");
+        setStreamingText(null);
+        setLoading(false);
         return;
       }
 
-      // 添加用户消息
-      const userTurn: ScenarioTurnResult = {
-        role: "user",
-        content: message.trim(),
-        usedWords: usedInMessage,
-        allUsedWords: [],
-        completed: false,
-      };
+      // SSE 流式接收 AI 回复（打字机效果）
+      for await (const event of readSSE(res)) {
+        if (event.type === "chunk") {
+          setStreamingText((prev) => (prev || "") + event.content);
+        } else if (event.type === "done") {
+          const data = event.result as ScenarioTurnResult;
+          const aiTurn: ScenarioTurnResult = {
+            role: data.role,
+            content: data.content,
+            usedWords: data.usedWords || [],
+            allUsedWords: data.allUsedWords || [],
+            completed: data.completed || false,
+            review: data.review,
+          };
 
-      // 添加 AI 回复
-      const aiTurn: ScenarioTurnResult = {
-        role: data.role,
-        content: data.content,
-        usedWords: data.usedWords || [],
-        allUsedWords: data.allUsedWords || [],
-        completed: data.completed || false,
-        review: data.review,
-      };
+          setTurns((prev) => [...prev, aiTurn]);
+          setStreamingText(null);
 
-      const newTurns = [...turns, userTurn, aiTurn];
-      setTurns(newTurns);
-      setMessage("");
-
-      if (aiTurn.completed) {
-        setCompleted(true);
+          if (aiTurn.completed) {
+            setCompleted(true);
+          }
+        } else if (event.type === "error") {
+          toast.error(event.message);
+          setStreamingText(null);
+        }
       }
     } catch {
       toast.error("网络错误");
+      setStreamingText(null);
     } finally {
       setLoading(false);
     }
-  }, [message, loading, sessionId, words, usedWordsSet, turns]);
+  }, [message, loading, sessionId, words, usedWordsSet]);
 
   const handleStart = useCallback(async () => {
     setLoading(true);
+    setStreamingText("");
     try {
       const res = await fetch("/api/vocab/daily/scenario", {
         method: "POST",
@@ -129,15 +148,30 @@ export function VocabDailyScenario({
         body: JSON.stringify({ sessionId, action: "start" }),
       });
 
-      const data = await res.json();
       if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "启动场景失败" }));
         toast.error(data.error || "启动场景失败");
+        setStreamingText(null);
+        setLoading(false);
         return;
       }
 
-      setTurns([data]);
+      // SSE 流式接收
+      for await (const event of readSSE(res)) {
+        if (event.type === "chunk") {
+          setStreamingText((prev) => (prev || "") + event.content);
+        } else if (event.type === "done") {
+          const data = event.result as ScenarioTurnResult;
+          setTurns([data]);
+          setStreamingText(null);
+        } else if (event.type === "error") {
+          toast.error(event.message);
+          setStreamingText(null);
+        }
+      }
     } catch {
       toast.error("网络错误");
+      setStreamingText(null);
     } finally {
       setLoading(false);
     }
@@ -226,6 +260,28 @@ export function VocabDailyScenario({
             </div>
           </div>
         ))}
+
+        {/* AI 正在输入的流式气泡 */}
+        {streamingText !== null && (
+          <div className="flex justify-start">
+            <div
+              className="max-w-[80%] rounded-2xl px-4 py-3 text-sm border"
+              style={{ backgroundColor: "#f8f8f8", borderColor: "#ABD1C6" }}
+            >
+              {streamingText === "" ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="text-muted-foreground">AI 正在输入...</span>
+                </div>
+              ) : (
+                <p className="leading-relaxed whitespace-pre-wrap">
+                  {streamingText}
+                  <span className="inline-block w-1.5 h-4 bg-muted-foreground animate-pulse ml-0.5 align-middle" />
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {completed && turns.length > 0 && (
           <div

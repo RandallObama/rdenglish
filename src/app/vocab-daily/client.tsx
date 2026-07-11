@@ -8,6 +8,7 @@ import { VocabDailySentencePractice } from "@/components/VocabDailySentencePract
 import { VocabDailyScenario } from "@/components/VocabDailyScenario";
 import { VocabDailySettlement } from "@/components/VocabDailySettlement";
 import { LoadingProgress } from "@/components/LoadingProgress";
+import { readSSE } from "@/lib/stream";
 
 type Phase =
   | "loading"
@@ -89,7 +90,7 @@ export function VocabDailyClient() {
     }
   }, []);
 
-  // ── 生成词汇 ──
+  // ── 生成词汇（generate 模式 SSE 流式，adjust 模式 JSON）──
   const generateWords = useCallback(
     async (action: "generate" | "adjust" = "generate", newDifficulty?: string) => {
       setGenerating(true);
@@ -105,30 +106,63 @@ export function VocabDailyClient() {
         });
 
         if (res.status === 429) {
-          const data = await res.json();
+          const data = await res.json().catch(() => ({ error: "请求过于频繁" }));
           toast.error(data.error || "请求过于频繁");
           setLoadError(true);
           return;
         }
 
-        const data = await res.json();
+        // adjust 模式走 JSON（非流式）
+        if (action === "adjust") {
+          const data = await res.json();
+          if (!res.ok) {
+            toast.error(data.error || "调整失败");
+            setLoadError(true);
+            return;
+          }
+          setSession({
+            id: data.sessionId,
+            topic: data.topic,
+            examType: data.examType,
+            difficulty: data.difficulty,
+            status: "generated",
+            words: data.words,
+            practices: [],
+            usageConsumed: false,
+          });
+          setPhase("difficulty_check");
+          return;
+        }
+
+        // generate 模式走 SSE 流式
         if (!res.ok) {
+          const data = await res.json().catch(() => ({ error: "生成失败" }));
           toast.error(data.error || "生成失败");
           setLoadError(true);
           return;
         }
 
-        setSession({
-          id: data.sessionId,
-          topic: data.topic,
-          examType: data.examType,
-          difficulty: data.difficulty,
-          status: "generated",
-          words: data.words,
-          practices: [],
-          usageConsumed: false,
-        });
-        setPhase("difficulty_check");
+        for await (const event of readSSE(res)) {
+          if (event.type === "chunk") {
+            // 流式内容到达，LoadingProgress 组件会持续显示
+          } else if (event.type === "done") {
+            const data = event.result as any;
+            setSession({
+              id: data.sessionId,
+              topic: data.topic,
+              examType: data.examType,
+              difficulty: data.difficulty,
+              status: "generated",
+              words: data.words,
+              practices: [],
+              usageConsumed: false,
+            });
+            setPhase("difficulty_check");
+          } else if (event.type === "error") {
+            toast.error(event.message);
+            setLoadError(true);
+          }
+        }
       } catch {
         setLoadError(true);
         toast.error("网络错误，请稍后重试");

@@ -2,10 +2,23 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Optimizer } from "@/components/Optimizer";
-import { OptimizeResult } from "@/components/OptimizeResult";
 import { FeatureGuide } from "@/components/FeatureGuide";
 import { FileText, Sliders, Gauge, Scissors, Loader2 } from "lucide-react";
+
+const OptimizeResult = dynamic(
+  () => import("@/components/OptimizeResult").then((m) => m.OptimizeResult),
+  {
+    loading: () => (
+      <div className="animate-pulse mt-6 space-y-4">
+        <div className="h-8 bg-muted rounded w-1/3" />
+        <div className="h-40 bg-muted rounded-xl" />
+        <div className="h-24 bg-muted rounded-xl" />
+      </div>
+    ),
+  }
+);
 import { toast } from "sonner";
 import type { GrammarNote, VocabNote, ImprovementItem, TransitionAnalysis } from "@/types";
 

@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 图片自动优化为 WebP/AVIF 格式（兼容浏览器自动选择）
+  images: {
+    formats: ["image/webp", "image/avif"],
+  },
+
   async headers() {
     return [
       // 静态资源长期缓存

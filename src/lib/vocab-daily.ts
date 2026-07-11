@@ -5,6 +5,7 @@
 
 import { aiClient } from "@/lib/ai-client";
 import type { ExamType, WordItem, SentenceEvaluationResult, ScenarioTurnResult } from "@/types";
+import type { SSEEvent } from "@/lib/stream";
 
 // ═══════════════════════════════════════════════════════════
 // 工具函数
@@ -167,6 +168,61 @@ export async function generateWords(
 }
 
 // ═══════════════════════════════════════════════════════════
+// 2b. streamGenerateWords — 流式版本，逐 chunk 推送
+// ═══════════════════════════════════════════════════════════
+
+export async function* streamGenerateWords(
+  topic: string | undefined,
+  examType: string,
+  difficulty: string
+): AsyncGenerator<SSEEvent, { topic: string; words: WordItem[]; difficulty: string }, void> {
+  const selectedTopic = topic && topic !== "auto" ? topic : pickTopic();
+  const systemPrompt = makeGeneratePrompt(selectedTopic, examType, difficulty);
+
+  const stream = await aiClient.chat.completions.create({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `请围绕「${selectedTopic}」生成 5 个英语词汇。` },
+    ],
+    temperature: 0.8,
+    max_tokens: 4096,
+    stream: true,
+  });
+
+  let fullContent = "";
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content;
+    if (delta) {
+      fullContent += delta;
+      yield { type: "chunk", content: delta };
+    }
+  }
+
+  const jsonStr = parseAIJson(fullContent);
+
+  let result: { topic: string; words: WordItem[]; difficulty: string };
+  try {
+    result = JSON.parse(jsonStr);
+  } catch {
+    throw new Error(`AI 词汇生成返回格式异常：${fullContent.slice(0, 300)}`);
+  }
+
+  if (!result.words || !Array.isArray(result.words) || result.words.length < 5) {
+    throw new Error(`AI 未生成足够的词汇（期望 5 个，实际 ${result.words?.length || 0} 个）`);
+  }
+
+  result.words = result.words.slice(0, 5);
+
+  return {
+    topic: result.topic || selectedTopic,
+    words: result.words,
+    difficulty: result.difficulty || difficulty,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
 // 3. regenerateWordsSameTopic — 同话题换难度
 // ═══════════════════════════════════════════════════════════
 
@@ -261,6 +317,58 @@ export async function evaluateSentence(
 }
 
 // ═══════════════════════════════════════════════════════════
+// 4b. streamEvaluateSentence — 流式版本
+// ═══════════════════════════════════════════════════════════
+
+export async function* streamEvaluateSentence(
+  word: string,
+  wordInfo: { chinese: string; collocations: string[]; example: string },
+  sentence: string
+): AsyncGenerator<SSEEvent, SentenceEvaluationResult, void> {
+  const systemPrompt = makeEvaluatePrompt(
+    word,
+    wordInfo.chinese,
+    wordInfo.collocations,
+    wordInfo.example
+  );
+
+  const stream = await aiClient.chat.completions.create({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: sentence },
+    ],
+    temperature: 0.1,
+    max_tokens: 1024,
+    stream: true,
+  });
+
+  let fullContent = "";
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content;
+    if (delta) {
+      fullContent += delta;
+      yield { type: "chunk", content: delta };
+    }
+  }
+
+  const jsonStr = parseAIJson(fullContent);
+
+  let result: SentenceEvaluationResult;
+  try {
+    result = JSON.parse(jsonStr) as SentenceEvaluationResult;
+  } catch {
+    throw new Error(`AI 造句评价返回格式异常：${fullContent.slice(0, 300)}`);
+  }
+
+  result.score = Math.max(1, Math.min(5, result.score || 3));
+  result.stars = result.score;
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════
 // 5. startScenario — 生成场景 + AI 首轮发言
 // ═══════════════════════════════════════════════════════════
 
@@ -329,6 +437,55 @@ export async function startScenario(
     result = {
       role: "ai",
       content: content.slice(0, 500) || "Let's start our conversation!",
+      usedWords: [],
+      allUsedWords: [],
+      completed: false,
+    };
+  }
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 5b. streamStartScenario — 流式版本
+// ═══════════════════════════════════════════════════════════
+
+export async function* streamStartScenario(
+  topic: string,
+  words: WordItem[]
+): AsyncGenerator<SSEEvent, ScenarioTurnResult, void> {
+  const systemPrompt = makeScenarioStartPrompt(topic, words);
+
+  const stream = await aiClient.chat.completions.create({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `请为话题「${topic}」创建一个英语对话场景，引导我使用这些词汇。` },
+    ],
+    temperature: 0.8,
+    max_tokens: 2048,
+    stream: true,
+  });
+
+  let fullContent = "";
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content;
+    if (delta) {
+      fullContent += delta;
+      yield { type: "chunk", content: delta };
+    }
+  }
+
+  const jsonStr = parseAIJson(fullContent);
+
+  let result: ScenarioTurnResult;
+  try {
+    result = JSON.parse(jsonStr) as ScenarioTurnResult;
+  } catch {
+    result = {
+      role: "ai",
+      content: fullContent.slice(0, 500) || "Let's start our conversation!",
       usedWords: [],
       allUsedWords: [],
       completed: false,
@@ -442,6 +599,81 @@ export async function continueScenario(
   }
 
   // 确保 allUsedWords 正确
+  if (unusedWordsList.length === 0) {
+    result.completed = true;
+    result.allUsedWords = allWords;
+  }
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 6b. streamContinueScenario — 流式版本
+// ═══════════════════════════════════════════════════════════
+
+export async function* streamContinueScenario(
+  topic: string,
+  words: WordItem[],
+  history: ScenarioTurnResult[],
+  usedWordsSet: string[]
+): AsyncGenerator<SSEEvent, ScenarioTurnResult, void> {
+  const allWords = words.map((w) => w.word);
+  const unusedWordsList = allWords.filter((w) => !usedWordsSet.includes(w));
+
+  if (unusedWordsList.length === 0) {
+    const doneResult: ScenarioTurnResult = {
+      role: "ai",
+      content: "🎉 Amazing! You've successfully used all 5 words!",
+      usedWords: [],
+      allUsedWords: usedWordsSet,
+      completed: true,
+      review: "恭喜你完成了全部 5 个词汇的场景练习！",
+    };
+    yield { type: "chunk", content: doneResult.content };
+    return doneResult;
+  }
+
+  const systemPrompt = makeScenarioContinuePrompt(topic, words, usedWordsSet, unusedWordsList);
+  const historySummary = history
+    .map((t) => `[${t.role === "ai" ? "AI" : "学生"}]: ${t.content}`)
+    .join("\n");
+
+  const stream = await aiClient.chat.completions.create({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `对话历史：\n${historySummary}\n\n请根据上述对话继续推进，引导学生使用剩余的目标词汇。` },
+    ],
+    temperature: 0.7,
+    max_tokens: 2048,
+    stream: true,
+  });
+
+  let fullContent = "";
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content;
+    if (delta) {
+      fullContent += delta;
+      yield { type: "chunk", content: delta };
+    }
+  }
+
+  const jsonStr = parseAIJson(fullContent);
+
+  let result: ScenarioTurnResult;
+  try {
+    result = JSON.parse(jsonStr) as ScenarioTurnResult;
+  } catch {
+    result = {
+      role: "ai",
+      content: fullContent.slice(0, 500) || "Let me think... Can you try again?",
+      usedWords: [],
+      allUsedWords: usedWordsSet,
+      completed: unusedWordsList.length <= 1,
+    };
+  }
+
   if (unusedWordsList.length === 0) {
     result.completed = true;
     result.allUsedWords = allWords;

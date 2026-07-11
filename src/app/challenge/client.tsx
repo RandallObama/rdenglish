@@ -1,8 +1,19 @@
 "use client";
 
 import { Suspense } from "react";
-import { ChallengeView } from "@/components/ChallengeView";
+import dynamic from "next/dynamic";
 import { BackButton } from "@/components/BackButton";
+
+const ChallengeView = dynamic(
+  () => import("@/components/ChallengeView").then((m) => m.ChallengeView),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground">加载中...</p>
+      </div>
+    ),
+  }
+);
 
 export function ChallengeClient() {
   return (

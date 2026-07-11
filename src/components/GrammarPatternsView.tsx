@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,45 +71,37 @@ export function GrammarPatternsView() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [analysis, setAnalysis] = useState<GrammarPatternAnalysis | null>(null);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"count" | "name" | "trend">("count");
   const [selectedPoints, setSelectedPoints] = useState<Set<string>>(new Set());
   const [exercisesOpen, setExercisesOpen] = useState(false);
 
-  // 获取分析数据
-  const fetchAnalysis = useCallback(async () => {
-    setLoading(true);
-    try {
+  // ── 获取语法模式分析（React Query 自动缓存）──
+  const {
+    data: analysis,
+    isLoading: loading,
+  } = useQuery({
+    queryKey: ["grammar-patterns"],
+    queryFn: async () => {
       const res = await fetch("/api/grammar-patterns");
       if (res.status === 401) {
         router.push("/login");
-        return;
+        throw new Error("未登录");
       }
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        toast.error(data?.error || "加载失败");
-        return;
+        throw new Error(data?.error || "加载失败");
       }
-      const data: GrammarPatternAnalysis = await res.json();
-      setAnalysis(data);
-    } catch {
-      toast.error("网络错误");
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
+      return res.json() as Promise<GrammarPatternAnalysis>;
+    },
+    enabled: status === "authenticated",
+  });
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-      return;
-    }
-    if (status === "authenticated") {
-      fetchAnalysis();
-    }
-  }, [status, router, fetchAnalysis]);
+  // 未登录重定向
+  if (status === "unauthenticated") {
+    router.push("/login");
+    return null;
+  }
 
   // 前端排序 & 过滤
   const filteredPatterns = useMemo(() => {

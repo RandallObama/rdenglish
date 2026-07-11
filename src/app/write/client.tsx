@@ -1,12 +1,25 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Writer } from "@/components/Writer";
-import { ResultCard } from "@/components/ResultCard";
 import { FeatureGuide } from "@/components/FeatureGuide";
 import { PenLine, ScanEye, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import type { GrammarNote, VocabNote } from "@/types";
+
+const ResultCard = dynamic(
+  () => import("@/components/ResultCard").then((m) => m.ResultCard),
+  {
+    loading: () => (
+      <div className="animate-pulse mt-6 space-y-4">
+        <div className="h-8 bg-muted rounded w-1/3" />
+        <div className="h-40 bg-muted rounded-xl" />
+        <div className="h-24 bg-muted rounded-xl" />
+      </div>
+    ),
+  }
+);
 
 export default function WriteClient() {
   const [result, setResult] = useState<{

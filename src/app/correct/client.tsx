@@ -1,12 +1,25 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { EssayCorrector } from "@/components/EssayCorrector";
-import { CorrectionResult } from "@/components/CorrectionResult";
 import { FeatureGuide } from "@/components/FeatureGuide";
 import { FileText, GraduationCap, BarChart3, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import type { CorrectionResult as CorrectionResultType } from "@/types";
+
+const CorrectionResult = dynamic(
+  () => import("@/components/CorrectionResult").then((m) => m.CorrectionResult),
+  {
+    loading: () => (
+      <div className="animate-pulse mt-6 space-y-4">
+        <div className="h-8 bg-muted rounded w-1/3" />
+        <div className="h-40 bg-muted rounded-xl" />
+        <div className="h-24 bg-muted rounded-xl" />
+      </div>
+    ),
+  }
+);
 
 export default function CorrectClient() {
   const [result, setResult] = useState<

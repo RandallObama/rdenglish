@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { WeekendChallengeBadge } from "@/components/WeekendChallengeBadge";
+import { DashboardPrefetcher } from "@/components/DashboardPrefetcher";
 
 /** 三个仪表盘按钮统一的深色方块样式 */
 const BTN_STYLE = { color: "#ABD1C6", backgroundColor: "#312F2C" };
@@ -24,7 +25,6 @@ export default async function DashboardPage() {
           alt="Rdaily English"
           width={640}
           height={160}
-          priority
           className="w-full max-w-[640px] h-auto dark:invert"
         />
       </div>
@@ -44,6 +44,9 @@ export default async function DashboardPage() {
 
       {/* 周末挑战入口 */}
       <WeekendChallengeBadge />
+
+      {/* 后台预取常用页面数据 */}
+      <DashboardPrefetcher />
     </div>
   );
 }

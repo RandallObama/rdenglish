@@ -4,7 +4,7 @@
 
 // ── API side: create an SSE Response ──
 
-type SSEEvent =
+export type SSEEvent =
   | { type: "chunk"; content: string }
   | { type: "done"; result: unknown; remaining?: number }
   | { type: "error"; message: string };
