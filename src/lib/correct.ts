@@ -426,6 +426,8 @@ ${scoringSteps}
 挑出可以升级的词汇：
 - word: 建议的词汇/短语
 - chinese: 中文释义
+- phoneticUK: 英式音标（IPA 格式，如 /ˈfəʊ.tə.ɡrɑːf/），必填
+- phoneticUS: 美式音标（IPA 格式，如 /ˈfoʊ.t̬ə.ɡræf/），必填。如果英美音标相同，两者写一样的即可
 - collocations: 常用搭配
 - synonyms: 近义词对比
 - level: 词汇等级
@@ -465,7 +467,21 @@ ${scoringSteps}
   },
   "sentenceCorrections": [...],
   "grammarIssues": [...],
-  "vocabSuggestions": [...],
+  "vocabSuggestions": [
+    {
+      "word": "建议的词汇",
+      "chinese": "中文释义",
+      "phoneticUK": "/英式音标/",
+      "phoneticUS": "/美式音标/",
+      "collocations": ["搭配1"],
+      "synonyms": ["近义词1"],
+      "level": "词汇等级",
+      "usage": "用法说明",
+      "examples": ["例句1"],
+      "commonErrors": [{"error": "误用", "correction": "正确", "explanation": "说明"}],
+      "examFocus": "考试关注点"
+    }
+  ],
   "improvementSuggestions": [...],
   "overallComment": "总评文本"
 }`;

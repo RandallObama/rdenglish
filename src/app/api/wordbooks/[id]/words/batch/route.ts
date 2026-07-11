@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 interface BatchWord {
   word?: string;
   chinese?: string;
+  phoneticUK?: string;
+  phoneticUS?: string;
   level?: string;
   usage?: string;
 }
@@ -48,15 +50,17 @@ export async function POST(
   }
 
   // 过滤有效的单词
-  const valid: Array<{ word: string; chinese: string; level: string | null; usage: string | null }> = [];
+  const valid: Array<{ word: string; chinese: string; phoneticUK: string | null; phoneticUS: string | null; level: string | null; usage: string | null }> = [];
   for (const w of words) {
     const word = w.word?.trim();
     const chinese = w.chinese?.trim();
     if (!word || word.length < 1 || word.length > 100) continue;
     if (!chinese || chinese.length < 1 || chinese.length > 200) continue;
+    const phoneticUK = w.phoneticUK?.trim() || null;
+    const phoneticUS = w.phoneticUS?.trim() || null;
     const level = w.level && ["基础", "进阶", "高级"].includes(w.level) ? w.level : null;
     const usage = w.usage?.trim()?.slice(0, 500) || null;
-    valid.push({ word, chinese, level, usage });
+    valid.push({ word, chinese, phoneticUK, phoneticUS, level, usage });
   }
 
   if (valid.length === 0) {
@@ -81,6 +85,8 @@ export async function POST(
         wordbookId,
         word: v.word,
         chinese: v.chinese,
+        phoneticUK: v.phoneticUK,
+        phoneticUS: v.phoneticUS,
         level: v.level,
         usage: v.usage,
         addedById: userId,

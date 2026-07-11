@@ -68,6 +68,8 @@ export function VocabDailySettlement({
           body: JSON.stringify({
             word: wordData.word,
             chinese: wordData.chinese,
+            phoneticUK: wordData.phoneticUK || "",
+            phoneticUS: wordData.phoneticUS || "",
             collocations: wordData.collocations,
             level: sessionStorage.getItem(`vocab-difficulty-${sessionId}`) || "",
             usage: wordData.usage,
@@ -157,8 +159,15 @@ export function VocabDailySettlement({
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="font-bold text-lg">{w.word}</span>
+                    {(w.phoneticUK || w.phoneticUS) && (
+                      <span className="text-xs text-muted-foreground font-normal">
+                        {w.phoneticUK && `UK /${w.phoneticUK}/`}
+                        {w.phoneticUK && w.phoneticUS && w.phoneticUK !== w.phoneticUS && " "}
+                        {w.phoneticUS && w.phoneticUS !== w.phoneticUK && `US /${w.phoneticUS}/`}
+                      </span>
+                    )}
                     <span className="text-sm text-muted-foreground">
                       {w.chinese}
                     </span>

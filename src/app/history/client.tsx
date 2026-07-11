@@ -281,6 +281,13 @@ export default function HistoryClient() {
                                 summary={
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className="font-bold text-sm text-primary">{note.word}</span>
+                                    {(note.phoneticUK || note.phoneticUS) && (
+                                      <span className="text-xs text-muted-foreground font-normal">
+                                        {note.phoneticUK && `UK /${note.phoneticUK}/`}
+                                        {note.phoneticUK && note.phoneticUS && note.phoneticUK !== note.phoneticUS && " "}
+                                        {note.phoneticUS && note.phoneticUS !== note.phoneticUK && `US /${note.phoneticUS}/`}
+                                      </span>
+                                    )}
                                     <Badge variant="outline" className="text-xs">{note.chinese}</Badge>
                                     <Badge variant="outline" className="text-xs">{note.level}</Badge>
                                   </div>
@@ -291,6 +298,8 @@ export default function HistoryClient() {
                                     data={{
                                       word: note.word,
                                       chinese: note.chinese,
+                                      phoneticUK: note.phoneticUK || "",
+                                      phoneticUS: note.phoneticUS || "",
                                       collocations: note.collocations || [],
                                       synonyms: note.synonyms || [],
                                       level: note.level,

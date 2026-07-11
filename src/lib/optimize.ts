@@ -210,6 +210,8 @@ ${i.scope}
 挑选 3-5 个优化中使用到的高级词汇或地道表达，每个包含：
 - word: 英文单词/短语
 - chinese: 中文释义
+- phoneticUK: 英式音标（IPA 格式，如 /ˈfəʊ.tə.ɡrɑːf/），必填
+- phoneticUS: 美式音标（IPA 格式，如 /ˈfoʊ.t̬ə.ɡræf/），必填。如果英美音标相同，两者写一样的即可
 - collocations: 2-3 个常用搭配
 - synonyms: 1-2 个近义词并简述区别
 - level: 词汇等级（"${e.vocabLevel}"）
@@ -258,7 +260,21 @@ ${i.scope}
     }
   ],
   "grammarNotes": [...],
-  "vocabNotes": [...],
+  "vocabNotes": [
+    {
+      "word": "单词",
+      "chinese": "中文释义",
+      "phoneticUK": "/英式音标/",
+      "phoneticUS": "/美式音标/",
+      "collocations": ["搭配1"],
+      "synonyms": ["近义词1"],
+      "level": "词汇等级",
+      "usage": "用法说明",
+      "examples": ["例句1"],
+      "commonErrors": [{"error": "误用", "correction": "正确", "explanation": "说明"}],
+      "examFocus": "考试关注点"
+    }
+  ],
   "highlights": "亮点总结"
 }
 ${mode === "fragment" ? '，额外包含 "transitionAnalysis": { "beforeCoherence": "...", "afterCoherence": "..." }' : ""}

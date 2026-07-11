@@ -18,6 +18,8 @@ import type { WordbookItem } from "@/types";
 interface TransferWord {
   word: string;
   chinese: string;
+  phoneticUK?: string;
+  phoneticUS?: string;
   level?: string;
   usage?: string;
 }
@@ -72,6 +74,8 @@ export function TransferToWordbookDialog({
           words: words.map((w) => ({
             word: w.word,
             chinese: w.chinese,
+            phoneticUK: w.phoneticUK || undefined,
+            phoneticUS: w.phoneticUS || undefined,
             level: w.level || undefined,
             usage: w.usage || undefined,
           })),
@@ -104,6 +108,8 @@ export function TransferToWordbookDialog({
           body: JSON.stringify({
             word: words[i].word,
             chinese: words[i].chinese,
+            phoneticUK: words[i].phoneticUK || undefined,
+            phoneticUS: words[i].phoneticUS || undefined,
             level: words[i].level || undefined,
             usage: words[i].usage || undefined,
           }),

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
-import { VocabPrintDialog } from "@/components/VocabPrintDialog";
+import { PrintDialog } from "@/components/PrintDialog";
+import type { PrintWord } from "@/lib/print-vocab-html";
 import {
   Trash2,
   BookOpen,
@@ -39,6 +40,8 @@ const levelVariant = {
 export interface TransferWord {
   word: string;
   chinese: string;
+  phoneticUK?: string;
+  phoneticUS?: string;
   level?: string;
   usage?: string;
 }
@@ -59,6 +62,7 @@ export function NotebookList({
   onTransferWords,
 }: NotebookListProps) {
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [printWords, setPrintWords] = useState<PrintWord[]>([]);
   const [shareTarget, setShareTarget] = useState<{ id: string; type: ShareContentType } | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -115,6 +119,8 @@ export function NotebookList({
                             .map((w) => ({
                               word: w.word,
                               chinese: w.chinese,
+                              phoneticUK: w.phoneticUK,
+                              phoneticUS: w.phoneticUS,
                               level: w.level,
                               usage: w.usage,
                             }));
@@ -126,6 +132,26 @@ export function NotebookList({
                       >
                         <ArrowRightToLine className="mr-1.5 h-4 w-4" />
                         转移到单词本 ({selectedIds.size})
+                      </Button>
+                    )}
+                    {selectedIds.size > 0 && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const selected = words
+                            .filter((w) => selectedIds.has(w.id))
+                            .map((w) => ({
+                              word: w.word,
+                              chinese: w.chinese,
+                              level: w.level,
+                            }));
+                          setPrintWords(selected);
+                          setPrintDialogOpen(true);
+                        }}
+                        style={getBtnStyle("notebook:batch-print")}
+                      >
+                        <Printer className="mr-1.5 h-4 w-4" />
+                        打印选中 ({selectedIds.size})
                       </Button>
                     )}
                     <Button
@@ -155,7 +181,7 @@ export function NotebookList({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPrintDialogOpen(true)}
+                      onClick={() => setSelectMode(true)}
                       style={getBtnStyle("notebook:print")}
                     >
                       <Printer className="mr-1.5 h-4 w-4" />
@@ -192,6 +218,13 @@ export function NotebookList({
                     </button>
                   )}
                   <span className="font-bold text-lg text-primary">{w.word}</span>
+                  {(w.phoneticUK || w.phoneticUS) && (
+                    <span className="text-xs text-muted-foreground font-normal">
+                      {w.phoneticUK && `UK /${w.phoneticUK}/`}
+                      {w.phoneticUK && w.phoneticUS && w.phoneticUK !== w.phoneticUS && " "}
+                      {w.phoneticUS && w.phoneticUS !== w.phoneticUK && `US /${w.phoneticUS}/`}
+                    </span>
+                  )}
                   <Badge variant="outline">{w.chinese}</Badge>
                   <Badge variant={levelVariant[w.level] || "secondary"} className="text-xs">
                     {w.level}
@@ -214,6 +247,8 @@ export function NotebookList({
                           {
                             word: w.word,
                             chinese: w.chinese,
+                            phoneticUK: w.phoneticUK,
+                            phoneticUS: w.phoneticUS,
                             level: w.level,
                             usage: w.usage,
                           },
@@ -410,14 +445,16 @@ export function NotebookList({
         </TabsContent>
       </Tabs>
 
-      <VocabPrintDialog
+      <PrintDialog
         open={printDialogOpen}
-        onOpenChange={setPrintDialogOpen}
-        words={words.map((w) => ({
-          word: w.word,
-          chinese: w.chinese,
-          level: w.level || "基础",
-        }))}
+        onOpenChange={(open) => {
+          setPrintDialogOpen(open);
+          if (!open) {
+            setSelectMode(false);
+            setSelectedIds(new Set());
+          }
+        }}
+        words={printWords}
       />
 
       <ShareDialog

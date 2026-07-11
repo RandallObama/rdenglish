@@ -81,6 +81,8 @@ ${exam.focus}
 ## 词汇分析要求（分析英文译文中出现的英语词汇，每个词汇必须包含）
 - word: 英文译文中的英语单词或短语（不要写中文词）
 - chinese: 中文释义
+- phoneticUK: 英式音标（IPA 格式，如 /ˈfəʊ.tə.ɡrɑːf/），必填
+- phoneticUS: 美式音标（IPA 格式，如 /ˈfoʊ.t̬ə.ɡræf/），必填。如果英美音标相同，两者写一样的即可
 - collocations: 2-3个常用搭配
 - synonyms: 1-2个近义词并简述区别
 - level: 词汇等级（"${exam.vocabularyLevel}"）
@@ -99,7 +101,21 @@ ${exam.focus}
 {
   "english": "翻译后的英文",
   "grammarNotes": [...],
-  "vocabNotes": [...],
+  "vocabNotes": [
+    {
+      "word": "单词",
+      "chinese": "中文释义",
+      "phoneticUK": "/英式音标/",
+      "phoneticUS": "/美式音标/",
+      "collocations": ["搭配1", "搭配2"],
+      "synonyms": ["近义词1", "近义词2"],
+      "level": "词汇等级",
+      "usage": "用法说明",
+      "examples": ["例句1", "例句2"],
+      "commonErrors": [{"error": "错误用法", "correction": "正确用法", "explanation": "说明"}],
+      "examFocus": "考试关注点"
+    }
+  ],
   "sentenceReviews": [
     {
       "sourceSentence": "中文原句",

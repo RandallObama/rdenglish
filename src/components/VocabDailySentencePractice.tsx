@@ -127,8 +127,15 @@ export function VocabDailySentencePractice({
         className="border rounded-xl p-6 mb-6"
         style={{ borderColor: "#ABD1C6" }}
       >
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-3 flex-wrap">
           <span className="text-3xl font-bold">{word.word}</span>
+          {(word.phoneticUK || word.phoneticUS) && (
+            <span className="text-sm text-muted-foreground font-normal">
+              {word.phoneticUK && `UK /${word.phoneticUK}/`}
+              {word.phoneticUK && word.phoneticUS && word.phoneticUK !== word.phoneticUS && " "}
+              {word.phoneticUS && word.phoneticUS !== word.phoneticUK && `US /${word.phoneticUS}/`}
+            </span>
+          )}
           <span className="text-lg text-muted-foreground">{word.chinese}</span>
           <Badge variant="secondary">{word.partOfSpeech}</Badge>
         </div>

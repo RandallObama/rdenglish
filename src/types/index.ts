@@ -26,6 +26,10 @@ export interface CommonError {
 export interface VocabNote {
   word: string;
   chinese: string;
+  /** 英式音标（IPA格式，如 /ˈfəʊ.tə.ɡrɑːf/） */
+  phoneticUK?: string;
+  /** 美式音标（IPA格式，如 /ˈfoʊ.t̬ə.ɡræf/） */
+  phoneticUS?: string;
   collocations: string[];
   synonyms: string[];
   level: string;
@@ -123,6 +127,10 @@ export interface SavedWordItem {
   id: string;
   word: string;
   chinese: string;
+  /** 英式音标（IPA格式） */
+  phoneticUK?: string;
+  /** 美式音标（IPA格式） */
+  phoneticUS?: string;
   collocations: string[];
   synonyms: string[];
   level: string;
@@ -367,6 +375,10 @@ export interface ConversationItem {
 export interface WordItem {
   word: string;
   chinese: string;
+  /** 英式音标（IPA格式） */
+  phoneticUK?: string;
+  /** 美式音标（IPA格式） */
+  phoneticUS?: string;
   partOfSpeech: string;
   definition: string;
   collocations: string[];
@@ -427,6 +439,10 @@ export interface WordbookWordItem {
   id: string;
   word: string;
   chinese: string;
+  /** 英式音标（IPA格式） */
+  phoneticUK?: string | null;
+  /** 美式音标（IPA格式） */
+  phoneticUS?: string | null;
   level: string | null;
   usage: string | null;
   addedById: string;

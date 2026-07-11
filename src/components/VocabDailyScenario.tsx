@@ -203,6 +203,14 @@ export function VocabDailyScenario({
               key={w.word}
               variant={isUsed ? "default" : "outline"}
               className="text-xs"
+              title={
+                (w.phoneticUK || w.phoneticUS)
+                  ? [
+                      w.phoneticUK && `UK /${w.phoneticUK}/`,
+                      w.phoneticUS && w.phoneticUS !== w.phoneticUK && `US /${w.phoneticUS}/`,
+                    ].filter(Boolean).join(" ")
+                  : undefined
+              }
               style={
                 isUsed
                   ? { backgroundColor: "#ABD1C6", color: "#312F2C", borderColor: "#ABD1C6" }

@@ -99,6 +99,8 @@ function makeGeneratePrompt(
 ## 每个词请提供
 - word: 单词本身
 - chinese: 中文释义
+- phoneticUK: 英式音标（IPA 格式，如 /ˈfəʊ.tə.ɡrɑːf/），必填
+- phoneticUS: 美式音标（IPA 格式，如 /ˈfoʊ.t̬ə.ɡræf/），必填。如果英美音标相同，两者写一样的即可
 - partOfSpeech: 词性（verb / noun / adjective / adverb / phrase）
 - definition: 简短英语定义
 - collocations: 3 个常用搭配（词组形式）
@@ -113,6 +115,8 @@ function makeGeneratePrompt(
     {
       "word": "单词",
       "chinese": "中文释义",
+      "phoneticUK": "英式音标",
+      "phoneticUS": "美式音标",
       "partOfSpeech": "词性",
       "definition": "英语定义",
       "collocations": ["搭配1", "搭配2", "搭配3"],

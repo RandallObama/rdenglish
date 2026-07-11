@@ -18,11 +18,16 @@ import {
   ArrowLeft,
   Crown,
   Users,
+  Printer,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { getBtnStyle } from "@/lib/button-colors";
 import type { WordbookDetail } from "@/types";
+import { PrintDialog } from "@/components/PrintDialog";
+import type { PrintWord } from "@/lib/print-vocab-html";
 
 export default function WordbookDetailClient() {
   const { data: session } = useSession();
@@ -36,6 +41,10 @@ export default function WordbookDetailClient() {
   const [addWordOpen, setAddWordOpen] = useState(false);
   const [deletingWordId, setDeletingWordId] = useState<string | null>(null);
   const [deletingWb, setDeletingWb] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [printWords, setPrintWords] = useState<PrintWord[]>([]);
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -193,15 +202,99 @@ export default function WordbookDetailClient() {
         </Card>
       ) : (
         <div className="space-y-2">
+          {/* 选择模式工具栏 */}
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-muted-foreground">
+              共 {wb.words.length} 个单词
+              {selectMode && selectedIds.size > 0 && (
+                <span className="ml-2 text-primary font-medium">
+                  已选 {selectedIds.size} 个
+                </span>
+              )}
+            </p>
+            <div className="flex items-center gap-2">
+              {selectMode ? (
+                <>
+                  {selectedIds.size > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const selected = wb.words
+                          .filter((w) => selectedIds.has(w.id))
+                          .map((w) => ({
+                            word: w.word,
+                            chinese: w.chinese,
+                            level: w.level || undefined,
+                          }));
+                        setPrintWords(selected);
+                        setPrintDialogOpen(true);
+                      }}
+                      style={getBtnStyle("wordbook:batch-print")}
+                    >
+                      <Printer className="mr-1.5 h-4 w-4" />
+                      打印选中 ({selectedIds.size})
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectMode(false);
+                      setSelectedIds(new Set());
+                    }}
+                  >
+                    取消
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectMode(true)}
+                  style={getBtnStyle("wordbook:print-select")}
+                >
+                  <Printer className="mr-1.5 h-4 w-4" />
+                  打印词汇
+                </Button>
+              )}
+            </div>
+          </div>
+
           {wb.words.map((entry) => (
             <Card key={entry.id}>
               <CardContent className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-4 min-w-0">
+                  {selectMode && (
+                    <button
+                      onClick={() => {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(entry.id)) next.delete(entry.id);
+                          else next.add(entry.id);
+                          return next;
+                        });
+                      }}
+                      className="shrink-0"
+                    >
+                      {selectedIds.has(entry.id) ? (
+                        <CheckSquare className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Square className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </button>
+                  )}
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-base text-primary">
                         {entry.word}
                       </span>
+                      {(entry.phoneticUK || entry.phoneticUS) && (
+                        <span className="text-xs text-muted-foreground font-normal">
+                          {entry.phoneticUK && `UK /${entry.phoneticUK}/`}
+                          {entry.phoneticUK && entry.phoneticUS && entry.phoneticUK !== entry.phoneticUS && " "}
+                          {entry.phoneticUS && entry.phoneticUS !== entry.phoneticUK && `US /${entry.phoneticUS}/`}
+                        </span>
+                      )}
                       {entry.level && (
                         <Badge variant="outline" className="text-xs">
                           {entry.level}
@@ -219,19 +312,21 @@ export default function WordbookDetailClient() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0"
-                  disabled={deletingWordId === entry.id}
-                  onClick={() => handleDeleteWord(entry.id)}
-                >
-                  {deletingWordId === entry.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                  )}
-                </Button>
+                {!selectMode && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0"
+                    disabled={deletingWordId === entry.id}
+                    onClick={() => handleDeleteWord(entry.id)}
+                  >
+                    {deletingWordId === entry.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                    )}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -250,6 +345,17 @@ export default function WordbookDetailClient() {
         onOpenChange={setAddWordOpen}
         wordbookId={wordbookId}
         onSuccess={fetchDetail}
+      />
+      <PrintDialog
+        open={printDialogOpen}
+        onOpenChange={(open) => {
+          setPrintDialogOpen(open);
+          if (!open) {
+            setSelectMode(false);
+            setSelectedIds(new Set());
+          }
+        }}
+        words={printWords}
       />
     </div>
   );

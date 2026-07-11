@@ -59,6 +59,8 @@ export async function GET(
         id: w.id,
         word: w.word,
         chinese: w.chinese,
+        phoneticUK: w.phoneticUK,
+        phoneticUS: w.phoneticUS,
         level: w.level,
         usage: w.usage,
         addedById: w.addedById,

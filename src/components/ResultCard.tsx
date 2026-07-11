@@ -313,6 +313,13 @@ export function ResultCard({
                       <span className="font-bold text-lg text-primary">
                         {note.word}
                       </span>
+                      {(note.phoneticUK || note.phoneticUS) && (
+                        <span className="text-xs text-muted-foreground font-normal">
+                          {note.phoneticUK && `UK /${note.phoneticUK}/`}
+                          {note.phoneticUK && note.phoneticUS && note.phoneticUK !== note.phoneticUS && " "}
+                          {note.phoneticUS && note.phoneticUS !== note.phoneticUK && `US /${note.phoneticUS}/`}
+                        </span>
+                      )}
                       <Badge variant="outline" className="text-xs">
                         {note.chinese}
                       </Badge>
@@ -337,6 +344,8 @@ export function ResultCard({
                       data={{
                         word: note.word,
                         chinese: note.chinese,
+                        phoneticUK: note.phoneticUK || "",
+                        phoneticUS: note.phoneticUS || "",
                         collocations: note.collocations || [],
                         synonyms: note.synonyms || [],
                         level: note.level,

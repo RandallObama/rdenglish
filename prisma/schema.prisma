@@ -99,6 +99,8 @@ model SavedWord {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   word         String
   chinese      String
+  phoneticUK   String?  // 英式音标 IPA
+  phoneticUS   String?  // 美式音标 IPA
   collocations String?  // JSON
   synonyms     String?  // JSON
   level        String?
@@ -240,6 +242,8 @@ model WordbookWord {
   wordbook   Wordbook @relation(fields: [wordbookId], references: [id], onDelete: Cascade)
   word       String
   chinese    String
+  phoneticUK String?  // 英式音标 IPA
+  phoneticUS String?  // 美式音标 IPA
   level      String?
   usage      String?
   addedById  String
