@@ -102,3 +102,65 @@ DROP TABLE IF EXISTS "SharedContent";  -- 已废弃，被 Message 替代
 3. **所有 API 路由必须有外层 try-catch**，确保永远返回 JSON（`NextResponse.json`），不依赖 Next.js 默认错误页
 4. **前端 `res.json()` 必须包裹 try-catch**，不能假设服务端一定返回合法 JSON
 5. **迁移文件应该是唯一的 schema 变更来源**，不应混用 `prisma db push`（本地）和 `prisma migrate deploy`（生产）
+
+---
+
+## 2026-07-11 — 仪表盘三个功能按钮填充色与背景融为一体
+
+### 现象
+
+用户登录后进入 `/dashboard`，三个功能按钮（开始写作、小工具、每日5词）的**填充色和页面背景一样**，按钮只有文字可见，方块区域完全透明。
+
+**关键特征**：
+- **首次加载（SSR）**：按钮填充色消失，与背景融为一体
+- **客户端导航回来**：按钮正常显示深色/薄荷色填充
+- **重新打开网站**：问题复现
+- 问题发生在**亮色模式**下（背景 #EFECE6 米白，按钮透明 → 融为一体）
+
+### 排查过程
+
+1. 检查 `dashboard/page.tsx` → 按钮使用 `style={BTN_STYLE}` 定义 `{ color: "#ABD1C6", backgroundColor: "#312F2C" }`，颜色值本身与背景对比明显
+2. 怀疑暗色模式导致 —— 但用户确认是亮色模式
+3. 怀疑 CSP 拦截 inline style —— 但 CSP 不拦截 `element.style` API，无法解释客户端导航正常
+4. 怀疑 Vercel 缓存旧版本 —— 但页面是动态渲染（`ƒ`），不做静态缓存
+5. 全项目搜索 `style={...}` 用法 → 发现所有其他使用 `style` 的 `<Link>` 都在 `"use client"` 组件中，只有 dashboard 的三个按钮在**服务端组件**（`async function`）中
+
+### 根因
+
+**Next.js 服务端组件（RSC）中 `<Link style={...}>` 的 inline style 在 SSR 时未被正确序列化到 HTML**。
+
+- SSR 首次加载：服务端渲染的 HTML 中 `<a>` 标签缺少 `style` 属性 → 按钮无背景色（透明） → 透出页面米白背景 → 视觉上"融为一体"
+- 客户端导航：React 在浏览器中直接操作 DOM，`style` 属性正常应用 → 按钮显示正确的深色背景
+- 为什么其他页面没问题：其他使用 `style` 的 `<Link>` 都在 `"use client"` 组件中，客户端渲染不受影响
+
+### 修复
+
+**文件**：`src/app/dashboard/page.tsx`
+
+将 inline `style` 替换为 Tailwind CSS 语义颜色类（编译进 stylesheet，不受 SSR 影响）：
+
+```diff
+- const BTN_STYLE = { color: "#ABD1C6", backgroundColor: "#312F2C" };
+- const BTN_CLASS = "group flex items-center ...";
++ const BTN_CLASS = "group flex items-center ...";
++ const BTN_PRIMARY = `${BTN_CLASS} bg-primary text-primary-foreground`;
++ const BTN_ACCENT = `${BTN_CLASS} bg-accent text-accent-foreground`;
+
+- <Link href="/start-writing" className={BTN_CLASS} style={BTN_STYLE}>
++ <Link href="/start-writing" className={BTN_PRIMARY}>
+
+- <Link href="/tools" className={BTN_CLASS} style={BTN_STYLE}>
++ <Link href="/tools" className={BTN_ACCENT}>
+
+- <Link href="/vocab-daily" className={BTN_CLASS} style={BTN_STYLE}>
++ <Link href="/vocab-daily" className={BTN_PRIMARY}>
+```
+
+同时实现了交替配色（primary → accent → primary），自动适配亮/暗模式（CSS 变量在 `.dark` 下互换）。
+
+### 教训
+
+1. **Next.js 服务端组件中避免 inline `style` 属性**，尤其是通过 `next/link` 的 `<Link>` 传递时。使用 Tailwind CSS 类或 CSS Module 代替
+2. **首次加载 vs 客户端导航行为不一致**是 SSR 问题的典型信号，优先排查服务端/客户端渲染差异
+3. **`"use client"` 组件中的 `style` 不受影响**，仅服务端组件有此问题
+4. **优先使用 CSS 变量 + Tailwind 语义类**（`bg-primary`、`bg-accent` 等），不仅避免 SSR 问题，还能自动适配亮/暗模式
