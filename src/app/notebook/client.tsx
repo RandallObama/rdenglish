@@ -79,6 +79,11 @@ export default function NotebookClient() {
     }
   };
 
+  const handleTransferWords = useCallback((wordsToTransfer: TransferWord[]) => {
+    setTransferWords(wordsToTransfer);
+    setTransferOpen(true);
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -106,11 +111,6 @@ export default function NotebookClient() {
       </div>
     );
   }
-
-  const handleTransferWords = useCallback((wordsToTransfer: TransferWord[]) => {
-    setTransferWords(wordsToTransfer);
-    setTransferOpen(true);
-  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
