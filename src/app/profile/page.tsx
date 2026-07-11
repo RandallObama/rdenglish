@@ -2,12 +2,18 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Loader2, ShieldCheck, Mail, Phone, User, Clock, Key, Calendar } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import {
+  Loader2, ShieldCheck, Mail, Phone, User, Clock, Key, Calendar,
+  PenLine, Sparkles, CheckCircle, BookOpen, Bookmark, Lightbulb,
+  BarChart3, Library, Users, LayoutDashboard, History, LogOut,
+} from "lucide-react";
 import { toast } from "sonner";
 import { getBtnStyle } from "@/lib/button-colors";
 import { maskPhone } from "@/lib/phone-utils";
@@ -373,14 +379,69 @@ export default function ProfilePage() {
       {/* ── 页面标题 ── */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold">个人中心</h1>
-        <p className="text-sm text-muted-foreground mt-2">管理你的账号信息与安全设置</p>
+        <p className="text-sm text-muted-foreground mt-2">功能导航与账号设置</p>
       </div>
 
       {globalError && (
         <p className="text-sm text-destructive text-center mb-4">{globalError}</p>
       )}
 
-      <div className="space-y-6">
+      {/* ═══════ 功能导航区 ═══════ */}
+      <section className="mb-8">
+        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <LayoutDashboard className="h-5 w-5" />
+          功能导航
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {[
+            { label: "写作翻译", href: "/write", icon: PenLine, desc: "中英互译", seed: "profile:translate" },
+            { label: "写作优化", href: "/optimize", icon: Sparkles, desc: "文章润色提升", seed: "profile:optimize" },
+            { label: "文章批改", href: "/correct", icon: CheckCircle, desc: "语法纠错评分", seed: "profile:correct" },
+            { label: "每日5词", href: "/vocab-daily", icon: BookOpen, desc: "造句+场景对话", seed: "profile:vocab-daily" },
+            { label: "笔记本", href: "/notebook", icon: Bookmark, desc: "生词与语法笔记", seed: "profile:notebook" },
+            { label: "语法病历", href: "/grammar-patterns", icon: Lightbulb, desc: "薄弱点分析", seed: "profile:grammar" },
+            { label: "学习报告", href: "/report", icon: BarChart3, desc: "趋势与分数", seed: "profile:report" },
+            { label: "单词本", href: "/wordbooks", icon: Library, desc: "共享协作背词", seed: "profile:wordbooks" },
+            { label: "好友", href: "/friends", icon: Users, desc: "好友与消息", seed: "profile:friends" },
+            { label: "仪表盘", href: "/dashboard", icon: LayoutDashboard, desc: "返回首页", seed: "profile:dashboard" },
+            { label: "翻译记录", href: "/history", icon: History, desc: "历史翻译", seed: "profile:history-trans" },
+            { label: "优化记录", href: "/history/optimizations", icon: History, desc: "历史优化", seed: "profile:history-opt" },
+            { label: "批改记录", href: "/history/corrections", icon: History, desc: "历史批改", seed: "profile:history-corr" },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="group flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl text-center transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              style={getBtnStyle(item.seed)}
+            >
+              <item.icon className="h-5 w-5 shrink-0" />
+              <span className="text-sm font-bold">{item.label}</span>
+              <span className="text-[10px] opacity-70 leading-tight">{item.desc}</span>
+            </Link>
+          ))}
+        </div>
+
+        {/* 退出登录 */}
+        <div className="mt-4 text-center">
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="inline-flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400 hover:underline"
+          >
+            <LogOut className="h-4 w-4" />
+            退出登录
+          </button>
+        </div>
+      </section>
+
+      <Separator className="mb-8" />
+
+      {/* ═══════ 账号设置区 ═══════ */}
+      <section>
+        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <User className="h-5 w-5" />
+          账号设置
+        </h2>
+        <div className="space-y-6">
         {/* ═══ 1. 基本信息 ═══ */}
         <Card>
           <CardHeader>
@@ -665,6 +726,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+      </section>
     </div>
   );
 }

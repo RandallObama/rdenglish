@@ -218,88 +218,20 @@ export const Navbar = memo(function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* 用户菜单 */}
+          {/* 用户头像 → 个人中心 */}
           {session ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={buttonVariants({ variant: "ghost", size: "icon" })}
-              >
-                <Avatar className="h-8 w-8 ring-2 ring-primary/20">
-                  <AvatarFallback className="bg-primary/10 text-primary">
-                    {(session.user?.name ||
-                      session.user?.email ||
-                      "U")[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    {session.user?.name && (
-                      <p className="font-medium text-sm">
-                        {session.user.name}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {session.user?.email}
-                    </p>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/write")}>
-                  写作翻译
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/optimize")}>
-                  写作优化
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/correct")}>
-                  文章批改
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/vocab-daily")}>
-                  每日5词
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/notebook")}>
-                  笔记本
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => router.push("/grammar-patterns")}
-                >
-                  语法病历
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/report")}>
-                  学习报告
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/wordbooks")}>
-                  单词本
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/friends")}>
-                  好友
-                  {friendBadge > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="ml-auto h-4 px-1 text-[10px] leading-none"
-                    >
-                      {friendBadge}
-                    </Badge>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/profile")}>
-                  个人中心
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/dashboard")}>
-                  仪表盘
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-red-600 dark:text-red-400"
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                >
-                  退出登录
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link
+              href="/profile"
+              className={buttonVariants({ variant: "ghost", size: "icon" })}
+            >
+              <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {(session.user?.name ||
+                    session.user?.email ||
+                    "U")[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
           ) : (
             <div className="hidden md:flex items-center gap-2">
               <Link

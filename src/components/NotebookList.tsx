@@ -22,6 +22,9 @@ import {
   XCircle,
   Printer,
   Share2,
+  CheckSquare,
+  Square,
+  ArrowRightToLine,
 } from "lucide-react";
 import { ShareDialog } from "@/components/ShareDialog";
 import { getBtnStyle } from "@/lib/button-colors";
@@ -33,11 +36,19 @@ const levelVariant = {
   "高级": "destructive" as const,
 } as Record<string, "secondary" | "default" | "destructive">;
 
+export interface TransferWord {
+  word: string;
+  chinese: string;
+  level?: string;
+  usage?: string;
+}
+
 interface NotebookListProps {
   words: SavedWordItem[];
   grammars: SavedGrammarItem[];
   onDeleteWord: (id: string) => void;
   onDeleteGrammar: (id: string) => void;
+  onTransferWords?: (words: TransferWord[]) => void;
 }
 
 export function NotebookList({
@@ -45,9 +56,12 @@ export function NotebookList({
   grammars,
   onDeleteWord,
   onDeleteGrammar,
+  onTransferWords,
 }: NotebookListProps) {
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ id: string; type: ShareContentType } | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   if (words.length === 0 && grammars.length === 0) {
     return (
@@ -80,19 +94,76 @@ export function NotebookList({
         {/* 生词列表 */}
         <TabsContent value="words" className="space-y-3">
           {words.length > 0 && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-xs text-muted-foreground">
                 共 {words.length} 个生词
+                {selectMode && selectedIds.size > 0 && (
+                  <span className="ml-2 text-primary font-medium">
+                    已选 {selectedIds.size} 个
+                  </span>
+                )}
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPrintDialogOpen(true)}
-                style={getBtnStyle("notebook:print")}
-              >
-                <Printer className="mr-1.5 h-4 w-4" />
-                打印词汇
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {selectMode ? (
+                  <>
+                    {onTransferWords && selectedIds.size > 0 && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const selected = words
+                            .filter((w) => selectedIds.has(w.id))
+                            .map((w) => ({
+                              word: w.word,
+                              chinese: w.chinese,
+                              level: w.level,
+                              usage: w.usage,
+                            }));
+                          onTransferWords(selected);
+                          setSelectMode(false);
+                          setSelectedIds(new Set());
+                        }}
+                        style={getBtnStyle("notebook:batch-transfer")}
+                      >
+                        <ArrowRightToLine className="mr-1.5 h-4 w-4" />
+                        转移到单词本 ({selectedIds.size})
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectMode(false);
+                        setSelectedIds(new Set());
+                      }}
+                    >
+                      取消
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {onTransferWords && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectMode(true)}
+                        style={getBtnStyle("notebook:batch-select")}
+                      >
+                        <CheckSquare className="mr-1.5 h-4 w-4" />
+                        批量选择
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPrintDialogOpen(true)}
+                      style={getBtnStyle("notebook:print")}
+                    >
+                      <Printer className="mr-1.5 h-4 w-4" />
+                      打印词汇
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           )}
           {words.map((w) => (
@@ -100,6 +171,26 @@ export function NotebookList({
               key={w.id}
               summary={
                 <div className="flex items-center gap-2 flex-wrap">
+                  {selectMode && (
+                    <button
+                      className="shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(w.id)) next.delete(w.id);
+                          else next.add(w.id);
+                          return next;
+                        });
+                      }}
+                    >
+                      {selectedIds.has(w.id) ? (
+                        <CheckSquare className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Square className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </button>
+                  )}
                   <span className="font-bold text-lg text-primary">{w.word}</span>
                   <Badge variant="outline">{w.chinese}</Badge>
                   <Badge variant={levelVariant[w.level] || "secondary"} className="text-xs">
@@ -112,6 +203,26 @@ export function NotebookList({
               }
               action={
                 <div className="flex items-center gap-1">
+                  {onTransferWords && !selectMode && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="转移到单词本"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTransferWords([
+                          {
+                            word: w.word,
+                            chinese: w.chinese,
+                            level: w.level,
+                            usage: w.usage,
+                          },
+                        ]);
+                      }}
+                    >
+                      <ArrowRightToLine className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
