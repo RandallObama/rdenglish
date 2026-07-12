@@ -1,15 +1,16 @@
 /**
- * 词汇默写纸生成工具 v4 — 4 列表格排版
+ * 词汇默写纸生成工具 v5 — 参考图风格
  *
  * 布局：
- * - 标题「单词默写纸」+ DATE 日期行
- * - 4 列表格：NO. | WORD | MEANING | CHECK
- * - 每页 20 行（20 词/页）
- * - CHECK 列固定 ★★★★★ 供学生自评
- * - 配色：背景 #EFECE6，线条 #312F2C（网站设计系统）
- *
- * generatePrintHtml() 返回纯内容 HTML（无 toolbar/script），
- * 由 PdfPreviewModal 组件负责预览+下载交互。
+ * - 标题「Vocabulary」左上角
+ * - 4 列表格：黑色网格线（每个格子四边边框）
+ * - 列顺序根据方向动态切换
+ *   · 英→中 (en2cn): 序号 | WORD(英文已填) | MEANING(空白) | CHECK
+ *   · 中→英 (cn2en): 序号 | MEANING(中文已填) | WORD(空白/首字母) | CHECK
+ * - 每页 20 行
+ * - 无 DATE、副标题、页脚
+ * - CHECK 列 ★★★★★
+ * - 首字母提示：中→英时 WORD 空白格显示英文首字母
  */
 
 export type PrintFormat = "cn2en" | "en2cn";
@@ -24,18 +25,11 @@ export interface PrintOptions {
   showFirstLetter?: boolean;
 }
 
-import { PATCH_STYLES } from "./print-patch-styles";
-
 // ═══════════════════════════════
 // 布局常量
 // ═══════════════════════════════
 
 const ROWS_PER_PAGE = 20;
-
-const FORMAT_LABEL: Record<PrintFormat, string> = {
-  cn2en: "中→英",
-  en2cn: "英→中",
-};
 
 export function getWordsPerPage(): number {
   return ROWS_PER_PAGE;
@@ -46,14 +40,37 @@ export function getWordsPerPage(): number {
 // ═══════════════════════════════
 
 function escapeHtml(s: string): string {
-  const m: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  const m: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
   return s.replace(/[&<>"']/g, (c) => m[c] || c);
 }
 
-function hint(word: string): string {
+/** 生成首字母提示如 "a_ _ _ _" */
+function firstLetterHint(word: string): string {
   if (!word) return "";
   return word.charAt(0) + "_".repeat(Math.max(0, word.length - 1));
 }
+
+// ═══════════════════════════════
+// 表头映射（顺序随方向变化）
+// ═══════════════════════════════
+
+/**
+ * cn2en (中→英): 看中文写英文
+ *   → 序号 | MEANING | WORD | CHECK
+ *
+ * en2cn (英→中): 看英文写中文
+ *   → 序号 | WORD | MEANING | CHECK
+ */
+const HEADERS: Record<PrintFormat, [string, string, string, string]> = {
+  cn2en: ["序号", "MEANING", "WORD", "CHECK"],
+  en2cn: ["序号", "WORD", "MEANING", "CHECK"],
+};
 
 // ═══════════════════════════════
 // CSS 样式
@@ -65,44 +82,19 @@ const STYLES = `
 .paper {
   width: 210mm;
   min-height: 297mm;
-  background: #EFECE6;
-  padding: 14mm 7mm 12mm 7mm;
+  background: #FFFFFF;
+  padding: 12mm 12mm 10mm 12mm;
   font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
-  color: #312F2C;
-  position: relative;
-  outline: 3px dashed red;
+  color: #000;
 }
 
-/* ── 标题 ── */
 .paper-title {
-  text-align: center;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 3px;
-  margin-bottom: 3mm;
+  margin-bottom: 6mm;
 }
 
-.paper-date {
-  text-align: center;
-  font-size: 10px;
-  margin-bottom: 2mm;
-  color: #5C5650;
-}
-
-.paper-subtitle {
-  text-align: center;
-  font-size: 9px;
-  color: #8B817A;
-  margin-bottom: 2mm;
-}
-
-.title-line {
-  border: none;
-  border-top: 1.2px solid #312F2C;
-  margin-bottom: 4mm;
-}
-
-/* ── 表格 ── */
+/* ── 表格：黑色网格线 ── */
 .word-table {
   width: 100%;
   border-collapse: collapse;
@@ -111,57 +103,33 @@ const STYLES = `
 
 .word-table thead th {
   text-align: center;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 2.5mm 2mm;
-  border-top: 1.5px solid #312F2C;
-  border-bottom: 1.5px solid #312F2C;
+  padding: 3mm 2mm;
+  border: 1px solid #000;
+  background: #FFF;
 }
 
 .word-table tbody td {
   text-align: center;
   vertical-align: middle;
-  padding: 1.5mm 2mm;
-  height: 10.5mm;
-  border-bottom: 0.5px solid #C4BFB8;
-  font-size: 10px;
+  padding: 2mm 2mm;
+  height: 11.2mm;
+  border: 1px solid #000;
+  font-size: 11px;
   word-break: break-word;
 }
 
 /* 列宽 */
-.col-no { width: 8%; }
-.col-word { width: 25%; }
-.col-meaning { width: 30%; }
-.col-check { width: 37%; }
-
-/* 列内文字（需高于 .word-table tbody td 的权重） */
-.word-table td.col-word { font-size: 8px; }
-.word-table td.col-check { font-size: 9px; letter-spacing: 0.5px; }
+.col-no   { width: 10%; }
+.col-a    { width: 30%; }
+.col-b    { width: 30%; }
+.col-check { width: 30%; }
 
 /* 首字母提示 */
-.meaning-hint {
-  color: #B5AFA9;
-  font-size: 9px;
-}
-
-/* ── MEANING 书写横线 ── */
-.write-line {
-  display: block;
-  width: 100%;
-  height: 2px;
-  background: #312F2C;
-  margin-top: 1.5mm;
-}
-
-/* ── 页脚 ── */
-.paper-footer {
-  position: absolute;
-  bottom: 8mm;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 8px;
-  color: #B5AFA9;
+.letter-hint {
+  color: #888;
+  font-size: 10px;
 }
 `;
 
@@ -174,63 +142,64 @@ function renderPage(
   words: PrintWord[],
   startIndex: number,
   format: PrintFormat,
-  showHint: boolean,
-  pageNum: number,
-  totalPages: number
+  showHint: boolean
 ): string {
+  const headers = HEADERS[format];
+
   let rowsHtml = "";
   for (let r = 0; r < ROWS_PER_PAGE; r++) {
     const wi = startIndex + r;
     const word: PrintWord | null = wi < words.length ? words[wi] : null;
 
     const num = word ? wi + 1 : "";
-    const promptText = word
-      ? format === "cn2en"
-        ? word.chinese
-        : word.word
-      : "";
 
-    let meaningContent = "";
-    if (word && format === "cn2en" && showHint) {
-      meaningContent = `<span class="meaning-hint">${escapeHtml(hint(word.word))}</span>`;
-    }
+    // colA / colB 内容根据方向决定
+    let colAContent = "";
+    let colBContent = "";
+
     if (word) {
-      meaningContent += '<div class="write-line"></div>';
+      if (format === "cn2en") {
+        // 中→英: colA=MEANING(中文), colB=WORD(空白/首字母)
+        colAContent = escapeHtml(word.chinese);
+        colBContent = showHint
+          ? `<span class="letter-hint">${escapeHtml(firstLetterHint(word.word))}</span>`
+          : "";
+      } else {
+        // 英→中: colA=WORD(英文), colB=MEANING(空白)
+        colAContent = escapeHtml(word.word);
+        colBContent = "";
+      }
     }
 
     rowsHtml += `
       <tr>
         <td class="col-no">${num}</td>
-        <td class="col-word">${escapeHtml(promptText)}</td>
-        <td class="col-meaning">${meaningContent}</td>
+        <td class="col-a">${colAContent}</td>
+        <td class="col-b">${colBContent}</td>
         <td class="col-check">${word ? "★★★★★" : ""}</td>
       </tr>`;
   }
 
   return `
     <div class="paper">
-      <div class="paper-title">单 词 默 写 纸</div>
-      <div class="paper-date">DATE: ____ / ____ / ____</div>
-      <div class="paper-subtitle">${FORMAT_LABEL[format]}默写 · 共 ${words.length} 词</div>
-      <hr class="title-line" />
+      <div class="paper-title">Vocabulary</div>
       <table class="word-table">
         <colgroup>
           <col class="col-no" />
-          <col class="col-word" />
-          <col class="col-meaning" />
+          <col class="col-a" />
+          <col class="col-b" />
           <col class="col-check" />
         </colgroup>
         <thead>
           <tr>
-            <th>NO.</th>
-            <th>WORD</th>
-            <th>MEANING</th>
-            <th>CHECK</th>
+            <th>${headers[0]}</th>
+            <th>${headers[1]}</th>
+            <th>${headers[2]}</th>
+            <th>${headers[3]}</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
       </table>
-      <div class="paper-footer">第 ${pageNum} / ${totalPages} 页</div>
     </div>`;
 }
 
@@ -247,33 +216,23 @@ export function generatePrintHtml(
   options: PrintOptions = {}
 ): string {
   if (words.length === 0) {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;}</style></head><body><div style="text-align:center;padding:60px;color:#8B817A;font-size:14px;">未选择单词</div></body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;}</style></head><body><div style="color:#888;font-size:14px;">未选择单词</div></body></html>`;
   }
-
-  const totalPages = Math.ceil(words.length / ROWS_PER_PAGE);
 
   let pages = "";
   for (let i = 0; i < words.length; i += ROWS_PER_PAGE) {
-    pages += renderPage(
-      words,
-      i,
-      format,
-      !!options.showFirstLetter,
-      Math.floor(i / ROWS_PER_PAGE) + 1,
-      totalPages
-    );
+    pages += renderPage(words, i, format, !!options.showFirstLetter);
   }
 
-  // 返回完整 HTML 文档（用于 iframe srcdoc，完全 CSS 隔离）
+  // 完整 HTML 文档（用于 iframe srcdoc，CSS 完全隔离）
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>${STYLES}</style>
-  <style>${PATCH_STYLES}</style>
 </head>
-<body style="margin:0;padding:0;display:flex;flex-direction:column;align-items:center;gap:16px;padding:16px 0;background:#e8e5df;">
+<body style="margin:0;padding:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px 0;background:#e8e5df;">
   ${pages}
 </body>
 </html>`;

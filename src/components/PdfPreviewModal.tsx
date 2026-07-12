@@ -19,27 +19,6 @@ export function PdfPreviewModal({
 }: PdfPreviewModalProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [generating, setGenerating] = useState(false);
-  const [iframeReady, setIframeReady] = useState(false);
-
-  /** iframe 加载完成后直接往 iframe DOM 里注入样式补丁 */
-  function handleIframeLoad() {
-    if (!iframeRef.current?.contentDocument) return;
-    const doc = iframeRef.current.contentDocument;
-    const style = doc.createElement("style");
-    style.textContent = `
-      .paper { outline: 4px solid red; }
-      .word-table td.col-word { font-size: 7px !important; }
-      .write-line {
-        display: block !important;
-        width: 100% !important;
-        height: 3px !important;
-        background: red !important;
-        margin-top: 1.5mm !important;
-      }
-    `;
-    doc.head.appendChild(style);
-    setIframeReady(true);
-  }
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -176,7 +155,7 @@ export function PdfPreviewModal({
           sandbox="allow-same-origin"
           className="absolute inset-0 w-full h-full border-0"
           style={{ background: "#EFECE6" }}
-          onLoad={handleIframeLoad}
+          onLoad={() => {}}
         />
       </div>
     </div>
