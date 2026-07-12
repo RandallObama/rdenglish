@@ -68,6 +68,7 @@ const STYLES = `
   font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   color: #312F2C;
   position: relative;
+  outline: 3px dashed red;
 }
 
 /* ── 标题 ── */
