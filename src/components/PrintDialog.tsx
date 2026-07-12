@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Printer, Languages, ArrowLeftRight, Minus, Pencil } from "lucide-react";
-import { printVocab, type PrintFormat, type LineStyle, type PrintWord } from "@/lib/print-vocab-html";
+import { Eye, Languages, ArrowLeftRight, FileDown } from "lucide-react";
+import { generatePrintHtml, getWordsPerPage, type PrintFormat, type PrintWord } from "@/lib/print-vocab-html";
 import { getBtnStyle } from "@/lib/button-colors";
+import { PdfPreviewModal } from "@/components/PdfPreviewModal";
 
 interface PrintDialogProps {
   open: boolean;
@@ -43,57 +44,39 @@ const FORMATS: FormatOption[] = [
   },
 ];
 
-interface LineStyleOption {
-  value: LineStyle;
-  label: string;
-  desc: string;
-  icon: React.ReactNode;
-}
-
-const LINE_STYLES: LineStyleOption[] = [
-  {
-    value: "regular",
-    label: "标准横线",
-    desc: "4栏紧凑排列，约40词/页",
-    icon: <Minus className="h-5 w-5" />,
-  },
-  {
-    value: "four-line-three-grid",
-    label: "四线三格",
-    desc: "英语书写练习用，约24词/页",
-    icon: <Pencil className="h-5 w-5" />,
-  },
-];
-
 export function PrintDialog({
   open,
   onOpenChange,
   words,
 }: PrintDialogProps) {
   const [format, setFormat] = useState<PrintFormat>("cn2en");
-  const [lineStyle, setLineStyle] = useState<LineStyle>("regular");
   const [showFirstLetter, setShowFirstLetter] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
 
-  function handlePrint() {
+  function handlePreview() {
     if (words.length === 0) return;
 
-    printVocab(words, format, lineStyle, { showFirstLetter });
+    const html = generatePrintHtml(words, format, { showFirstLetter });
+    setPreviewHtml(html);
+    setPreviewOpen(true);
     onOpenChange(false);
   }
 
-  // 根据当前线型估算每页词数
-  const perPage = lineStyle === "regular" ? 40 : 24;
+  // 每页固定 20 词
+  const perPage = getWordsPerPage();
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Printer className="h-5 w-5" />
-            打印单词默写纸
+            <FileDown className="h-5 w-5" />
+            生成单词默写纸
           </DialogTitle>
           <DialogDescription>
-            选择排版格式后点击打印，通过浏览器「另存为 PDF」即可保存
+            选择排版格式后点击预览，在预览页确认无误即可下载 PDF
           </DialogDescription>
         </DialogHeader>
 
@@ -126,41 +109,6 @@ export function PrintDialog({
                 <span className="text-sm font-medium leading-tight">{f.label}</span>
                 <span className="text-[10px] text-muted-foreground leading-tight">
                   {f.desc}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 书写线样式选择 */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">书写格式</p>
-          <div className="grid grid-cols-2 gap-2">
-            {LINE_STYLES.map((s) => (
-              <button
-                key={s.value}
-                type="button"
-                onClick={() => setLineStyle(s.value)}
-                className={`
-                  flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 text-center
-                  transition-colors cursor-pointer
-                  ${
-                    lineStyle === s.value
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-muted-foreground/30"
-                  }
-                `}
-              >
-                <span
-                  className={
-                    lineStyle === s.value ? "text-primary" : "text-muted-foreground"
-                  }
-                >
-                  {s.icon}
-                </span>
-                <span className="text-sm font-medium leading-tight">{s.label}</span>
-                <span className="text-[10px] text-muted-foreground leading-tight">
-                  {s.desc}
                 </span>
               </button>
             ))}
@@ -209,12 +157,19 @@ export function PrintDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={handlePrint} disabled={words.length === 0} style={getBtnStyle("vocabprint:print")}>
-            <Printer className="mr-2 h-4 w-4" />
-            打印
+          <Button onClick={handlePreview} disabled={words.length === 0} style={getBtnStyle("vocabprint:preview")}>
+            <Eye className="mr-2 h-4 w-4" />
+            预览默写纸
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <PdfPreviewModal
+      open={previewOpen}
+      onClose={() => setPreviewOpen(false)}
+      html={previewHtml}
+    />
+    </>
   );
 }

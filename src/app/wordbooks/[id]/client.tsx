@@ -232,7 +232,7 @@ export default function WordbookDetailClient() {
                       style={getBtnStyle("wordbook:batch-print")}
                     >
                       <Printer className="mr-1.5 h-4 w-4" />
-                      打印选中 ({selectedIds.size})
+                      生成默写纸 ({selectedIds.size})
                     </Button>
                   )}
                   <Button
@@ -254,7 +254,7 @@ export default function WordbookDetailClient() {
                   style={getBtnStyle("wordbook:print-select")}
                 >
                   <Printer className="mr-1.5 h-4 w-4" />
-                  打印词汇
+                  默写纸
                 </Button>
               )}
             </div>

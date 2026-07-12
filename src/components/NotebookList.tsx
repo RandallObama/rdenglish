@@ -151,7 +151,7 @@ export function NotebookList({
                         style={getBtnStyle("notebook:batch-print")}
                       >
                         <Printer className="mr-1.5 h-4 w-4" />
-                        打印选中 ({selectedIds.size})
+                        生成默写纸 ({selectedIds.size})
                       </Button>
                     )}
                     <Button
@@ -185,7 +185,7 @@ export function NotebookList({
                       style={getBtnStyle("notebook:print")}
                     >
                       <Printer className="mr-1.5 h-4 w-4" />
-                      打印词汇
+                      默写纸
                     </Button>
                   </>
                 )}
