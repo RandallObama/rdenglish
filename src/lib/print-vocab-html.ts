@@ -127,7 +127,7 @@ const STYLES = `
 
 /* 列宽 */
 .col-no { width: 8%; }
-.col-word { width: 25%; font-size: 9px; }
+.col-word { width: 25%; font-size: 8px; }
 .col-meaning { width: 30%; }
 .col-check { width: 37%; font-size: 9px; letter-spacing: 0.5px; }
 
@@ -140,10 +140,9 @@ const STYLES = `
 /* ── MEANING 书写横线 ── */
 .write-line {
   width: 100%;
-  height: 0;
-  border-bottom: 0.8px solid #312F2C;
+  height: 1px;
+  background: #312F2C;
   margin-top: 1.5mm;
-  box-sizing: content-box;
 }
 
 /* ── 页脚 ── */
