@@ -152,8 +152,8 @@ export function PdfPreviewModal({
           ref={iframeRef}
           srcDoc={html}
           title="默写纸预览"
-          sandbox="allow-scripts allow-same-origin"
           className="absolute inset-0 w-full h-full border-0"
+          style={{ background: "#EFECE6" }}
         />
       </div>
     </div>
