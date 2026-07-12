@@ -16,6 +16,11 @@ export async function PUT(request: Request) {
   const body = await request.json();
   const { sessionId, dictationState, completed } = body || {};
 
+  // 自动迁移：确保 Turso 上有 dictationState 列
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "DailyWordSession" ADD COLUMN "dictationState" TEXT`
+  ).catch(() => {});
+
   if (!sessionId) {
     return NextResponse.json({ error: "缺少 sessionId" }, { status: 400 });
   }

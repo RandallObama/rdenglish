@@ -16,6 +16,11 @@ export async function GET() {
   const userId = session.user.id;
   const today = new Date().toISOString().slice(0, 10);
 
+  // 自动迁移：确保 Turso 上有 dictationState 列
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "DailyWordSession" ADD COLUMN "dictationState" TEXT`
+  ).catch(() => {});
+
   const sessionRecord = await prisma.dailyWordSession.findUnique({
     where: { userId_date: { userId, date: today } },
     include: { practices: { orderBy: { wordIndex: "asc" } } },
