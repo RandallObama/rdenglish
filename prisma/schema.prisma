@@ -306,9 +306,10 @@ model DailyWordSession {
   examType         String   // "cet4" | "cet6" | "high" | "ielts" ...
   difficulty       String   // "easy" | "medium" | "hard"
   words            String   // JSON: WordItem[]
-  status           String   @default("generated") // "generated" | "practicing" | "scenario_ready" | "scenario" | "completed"
+  status           String   @default("generated") // "generated" | "practicing" | "scenario_ready" | "scenario" | "dictation" | "completed"
   currentWordIndex Int      @default(0)
   scenarioMessages String?  // JSON: ScenarioTurn[]
+  dictationState   String?  // JSON: DictationState
   usageConsumed    Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

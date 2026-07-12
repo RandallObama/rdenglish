@@ -80,6 +80,7 @@ export async function POST(request: Request) {
           status: "generated",
           currentWordIndex: 0,
           scenarioMessages: null,
+          dictationState: null,
         },
       });
 
@@ -140,6 +141,7 @@ export async function POST(request: Request) {
           status: "generated",
           currentWordIndex: 0,
           scenarioMessages: null,
+          dictationState: null,
         },
       });
 

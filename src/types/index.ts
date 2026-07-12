@@ -399,6 +399,7 @@ export interface DailyVocabSession {
   words: WordItem[];
   practices: { wordIndex: number; score: number; completed: boolean }[];
   scenarioMessages?: ScenarioTurnResult[];
+  dictationState?: DictationState;
   usageConsumed: boolean;
 }
 
@@ -420,6 +421,13 @@ export interface ScenarioTurnResult {
   allUsedWords: string[];
   completed: boolean;
   review?: string;
+}
+
+export interface DictationState {
+  /** 待拼写单词索引的队列，index 0 为当前单词。空数组 = 全部完成 */
+  remainingIndices: number[];
+  /** 已使用"显示首字母"提示的单词索引 (key 为字符串) */
+  hintsUsed: Record<string, boolean>;
 }
 
 // ========== 共享单词本 ==========

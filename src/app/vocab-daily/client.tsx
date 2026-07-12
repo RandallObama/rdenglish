@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import type { WordItem, ScenarioTurnResult } from "@/types";
+import type { WordItem, ScenarioTurnResult, DictationState } from "@/types";
 import { VocabDailyDifficultyCheck } from "@/components/VocabDailyDifficultyCheck";
 import { VocabDailySentencePractice } from "@/components/VocabDailySentencePractice";
 import { VocabDailyScenario } from "@/components/VocabDailyScenario";
 import { VocabDailySettlement } from "@/components/VocabDailySettlement";
+import { VocabDailyDictation } from "@/components/VocabDailyDictation";
 import { LoadingProgress } from "@/components/LoadingProgress";
 import { readSSE } from "@/lib/stream";
 
@@ -17,6 +18,7 @@ type Phase =
   | "practicing"
   | "scenario_ready"
   | "scenario"
+  | "dictation"
   | "settlement"
   | "completed";
 
@@ -29,6 +31,7 @@ interface SessionData {
   words: WordItem[];
   practices: { wordIndex: number; score: number; completed: boolean }[];
   scenarioMessages?: ScenarioTurnResult[];
+  dictationState?: DictationState;
   usageConsumed: boolean;
 }
 
@@ -77,6 +80,9 @@ export function VocabDailyClient() {
         case "scenario":
           setScenarioTurns(s.scenarioMessages || []);
           setPhase("scenario");
+          break;
+        case "dictation":
+          setPhase("dictation");
           break;
         case "completed":
           setPhase("settlement");
@@ -240,12 +246,17 @@ export function VocabDailyClient() {
 
   // ── 跳过场景 ──
   const handleSkipScenario = useCallback(() => {
-    setPhase("settlement");
+    setPhase("dictation");
   }, []);
 
   // ── 场景完成 ──
   const handleScenarioDone = useCallback((turns: ScenarioTurnResult[]) => {
     setScenarioTurns(turns);
+    setPhase("dictation");
+  }, []);
+
+  // ── 默写完成 ──
+  const handleDictationDone = useCallback(() => {
     setPhase("settlement");
   }, []);
 
@@ -333,7 +344,7 @@ export function VocabDailyClient() {
               className="px-6 py-3 rounded-xl border font-bold transition-all hover:scale-105"
               style={{ borderColor: "#312F2C", color: "#312F2C" }}
             >
-              跳过，直接结算
+              跳过场景，进入默写
             </button>
           </div>
         </div>
@@ -347,6 +358,18 @@ export function VocabDailyClient() {
         words={session.words}
         initialTurns={scenarioTurns}
         onDone={handleScenarioDone}
+      />
+    );
+  }
+
+  // ── 默写挑战 ──
+  if (phase === "dictation" && session) {
+    return (
+      <VocabDailyDictation
+        sessionId={session.id}
+        words={session.words}
+        initialDictationState={session.dictationState}
+        onDone={handleDictationDone}
       />
     );
   }

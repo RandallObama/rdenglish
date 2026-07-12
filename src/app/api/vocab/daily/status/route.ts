@@ -39,6 +39,9 @@ export async function GET() {
       scenarioMessages: sessionRecord.scenarioMessages
         ? JSON.parse(sessionRecord.scenarioMessages)
         : undefined,
+      dictationState: sessionRecord.dictationState
+        ? JSON.parse(sessionRecord.dictationState)
+        : undefined,
       usageConsumed: sessionRecord.usageConsumed,
       practices: sessionRecord.practices.map((p) => ({
         wordIndex: p.wordIndex,

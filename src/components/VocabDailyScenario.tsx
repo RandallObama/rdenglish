@@ -359,7 +359,7 @@ export function VocabDailyScenario({
             className="px-6 py-3 rounded-xl font-bold text-white transition-all hover:scale-105"
             style={{ backgroundColor: "#312F2C", color: "#ABD1C6" }}
           >
-            查看结算 →
+            进入默写挑战 →
           </button>
         </div>
       )}

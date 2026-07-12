@@ -106,7 +106,7 @@ export async function POST(request: Request) {
         where: { id: sessionId },
         data: {
           scenarioMessages: JSON.stringify(existingMessages),
-          status: result.completed ? "completed" : "scenario",
+          status: result.completed ? "dictation" : "scenario",
         },
       });
 
