@@ -269,6 +269,22 @@ export function generatePrintHtml(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>${STYLES}</style>
+  <style>
+    /* === PDF打印补丁 v2 — 覆盖 STYLES 中的默认值 === */
+    .paper {
+      outline: 3px dashed red;
+    }
+    .word-table td.col-word {
+      font-size: 8px;
+    }
+    .write-line {
+      display: block;
+      width: 100%;
+      height: 2px;
+      background: #312F2C;
+      margin-top: 1.5mm;
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;display:flex;flex-direction:column;align-items:center;gap:16px;padding:16px 0;background:#e8e5df;">
   ${pages}
