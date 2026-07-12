@@ -15,7 +15,7 @@ export function PdfPreviewModal({
   open,
   onClose,
   html,
-  filenamePrefix = "单词默写纸",
+  filenamePrefix = "Vocabulary",
 }: PdfPreviewModalProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [generating, setGenerating] = useState(false);
@@ -120,7 +120,7 @@ export function PdfPreviewModal({
       {/* 工具栏 */}
       <div className="flex items-center justify-between shrink-0 px-5 py-3 bg-[#312F2C] text-[#EFECE6] shadow-lg">
         <span className="text-sm font-semibold tracking-wide">
-          📝 默写纸预览
+          📄 词汇表预览
         </span>
         <div className="flex items-center gap-3">
           <button
@@ -151,7 +151,7 @@ export function PdfPreviewModal({
         <iframe
           ref={iframeRef}
           srcDoc={html}
-          title="默写纸预览"
+          title="词汇表预览"
           sandbox="allow-same-origin"
           className="absolute inset-0 w-full h-full border-0"
           style={{ background: "#EFECE6" }}

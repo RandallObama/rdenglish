@@ -26,8 +26,8 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { getBtnStyle } from "@/lib/button-colors";
 import type { WordbookDetail } from "@/types";
-import { PrintDialog } from "@/components/PrintDialog";
-import type { PrintWord } from "@/lib/print-vocab-html";
+import { PdfPreviewModal } from "@/components/PdfPreviewModal";
+import { generatePrintHtml } from "@/lib/print-vocab-html";
 
 export default function WordbookDetailClient() {
   const { data: session } = useSession();
@@ -43,8 +43,8 @@ export default function WordbookDetailClient() {
   const [deletingWb, setDeletingWb] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [printDialogOpen, setPrintDialogOpen] = useState(false);
-  const [printWords, setPrintWords] = useState<PrintWord[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState("");
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -226,13 +226,13 @@ export default function WordbookDetailClient() {
                             chinese: w.chinese,
                             level: w.level || undefined,
                           }));
-                        setPrintWords(selected);
-                        setPrintDialogOpen(true);
+                        setPreviewHtml(generatePrintHtml(selected));
+                        setPreviewOpen(true);
                       }}
                       style={getBtnStyle("wordbook:batch-print")}
                     >
                       <Printer className="mr-1.5 h-4 w-4" />
-                      生成默写纸 ({selectedIds.size})
+                      导出PDF ({selectedIds.size})
                     </Button>
                   )}
                   <Button
@@ -254,7 +254,7 @@ export default function WordbookDetailClient() {
                   style={getBtnStyle("wordbook:print-select")}
                 >
                   <Printer className="mr-1.5 h-4 w-4" />
-                  默写纸
+                  导出PDF
                 </Button>
               )}
             </div>
@@ -346,16 +346,14 @@ export default function WordbookDetailClient() {
         wordbookId={wordbookId}
         onSuccess={fetchDetail}
       />
-      <PrintDialog
-        open={printDialogOpen}
-        onOpenChange={(open) => {
-          setPrintDialogOpen(open);
-          if (!open) {
-            setSelectMode(false);
-            setSelectedIds(new Set());
-          }
+      <PdfPreviewModal
+        open={previewOpen}
+        onClose={() => {
+          setPreviewOpen(false);
+          setSelectMode(false);
+          setSelectedIds(new Set());
         }}
-        words={printWords}
+        html={previewHtml}
       />
     </div>
   );

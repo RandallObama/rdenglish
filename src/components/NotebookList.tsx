@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
-import { PrintDialog } from "@/components/PrintDialog";
-import type { PrintWord } from "@/lib/print-vocab-html";
+import { PdfPreviewModal } from "@/components/PdfPreviewModal";
+import { generatePrintHtml } from "@/lib/print-vocab-html";
 import {
   Trash2,
   BookOpen,
@@ -61,8 +61,8 @@ export function NotebookList({
   onDeleteGrammar,
   onTransferWords,
 }: NotebookListProps) {
-  const [printDialogOpen, setPrintDialogOpen] = useState(false);
-  const [printWords, setPrintWords] = useState<PrintWord[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState("");
   const [shareTarget, setShareTarget] = useState<{ id: string; type: ShareContentType } | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -145,13 +145,13 @@ export function NotebookList({
                               chinese: w.chinese,
                               level: w.level,
                             }));
-                          setPrintWords(selected);
-                          setPrintDialogOpen(true);
+                          setPreviewHtml(generatePrintHtml(selected));
+                          setPreviewOpen(true);
                         }}
                         style={getBtnStyle("notebook:batch-print")}
                       >
                         <Printer className="mr-1.5 h-4 w-4" />
-                        生成默写纸 ({selectedIds.size})
+                        导出PDF ({selectedIds.size})
                       </Button>
                     )}
                     <Button
@@ -185,7 +185,7 @@ export function NotebookList({
                       style={getBtnStyle("notebook:print")}
                     >
                       <Printer className="mr-1.5 h-4 w-4" />
-                      默写纸
+                      导出PDF
                     </Button>
                   </>
                 )}
@@ -445,16 +445,14 @@ export function NotebookList({
         </TabsContent>
       </Tabs>
 
-      <PrintDialog
-        open={printDialogOpen}
-        onOpenChange={(open) => {
-          setPrintDialogOpen(open);
-          if (!open) {
-            setSelectMode(false);
-            setSelectedIds(new Set());
-          }
+      <PdfPreviewModal
+        open={previewOpen}
+        onClose={() => {
+          setPreviewOpen(false);
+          setSelectMode(false);
+          setSelectedIds(new Set());
         }}
-        words={printWords}
+        html={previewHtml}
       />
 
       <ShareDialog
