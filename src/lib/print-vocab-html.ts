@@ -127,9 +127,13 @@ const STYLES = `
 
 /* 列宽 */
 .col-no { width: 8%; }
-.col-word { width: 25%; font-size: 8px; }
+.col-word { width: 25%; }
 .col-meaning { width: 30%; }
-.col-check { width: 37%; font-size: 9px; letter-spacing: 0.5px; }
+.col-check { width: 37%; }
+
+/* 列内文字（需高于 .word-table tbody td 的权重） */
+.word-table td.col-word { font-size: 8px; }
+.word-table td.col-check { font-size: 9px; letter-spacing: 0.5px; }
 
 /* 首字母提示 */
 .meaning-hint {
@@ -139,8 +143,9 @@ const STYLES = `
 
 /* ── MEANING 书写横线 ── */
 .write-line {
+  display: block;
   width: 100%;
-  height: 1px;
+  height: 2px;
   background: #312F2C;
   margin-top: 1.5mm;
 }
