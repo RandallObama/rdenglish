@@ -147,14 +147,13 @@ export function PdfPreviewModal({
       </div>
 
       {/* iframe 预览区 —— CSS 完全隔离，无 oklch 泄漏 */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 relative min-h-0">
         <iframe
           ref={iframeRef}
           srcDoc={html}
           title="默写纸预览"
           sandbox="allow-scripts allow-same-origin"
-          className="w-full border-0"
-          style={{ minHeight: "100%", display: "block" }}
+          className="absolute inset-0 w-full h-full border-0"
         />
       </div>
     </div>
