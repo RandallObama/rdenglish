@@ -64,7 +64,7 @@ const STYLES = `
   width: 210mm;
   min-height: 297mm;
   background: #EFECE6;
-  padding: 14mm 12mm 12mm 12mm;
+  padding: 14mm 7mm 12mm 7mm;
   font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   color: #312F2C;
   position: relative;
@@ -137,12 +137,11 @@ const STYLES = `
   font-size: 9px;
 }
 
-/* ── 用法说明 ── */
-.usage-note {
-  text-align: center;
-  font-size: 8px;
-  color: #B5AFA9;
-  margin-top: 4mm;
+/* ── MEANING 书写横线 ── */
+.write-line {
+  width: 100%;
+  border-bottom: 0.8px solid #312F2C;
+  margin-top: 1.5mm;
 }
 
 /* ── 页脚 ── */
@@ -186,6 +185,9 @@ function renderPage(
     if (word && format === "cn2en" && showHint) {
       meaningContent = `<span class="meaning-hint">${escapeHtml(hint(word.word))}</span>`;
     }
+    if (word) {
+      meaningContent += '<div class="write-line"></div>';
+    }
 
     rowsHtml += `
       <tr>
@@ -219,7 +221,6 @@ function renderPage(
         </thead>
         <tbody>${rowsHtml}</tbody>
       </table>
-      <p class="usage-note">用法：填写单词、释义，并在 CHECK 列用 ★ 标记掌握程度（1~5 星），或打 ✓ 表示已掌握。</p>
       <div class="paper-footer">第 ${pageNum} / ${totalPages} 页</div>
     </div>`;
 }
