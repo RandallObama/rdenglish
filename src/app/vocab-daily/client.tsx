@@ -33,6 +33,7 @@ interface SessionData {
   scenarioMessages?: ScenarioTurnResult[];
   dictationState?: DictationState;
   usageConsumed: boolean;
+  topicChangeCount: number;
 }
 
 export function VocabDailyClient() {
@@ -135,6 +136,7 @@ export function VocabDailyClient() {
             words: data.words,
             practices: [],
             usageConsumed: false,
+            topicChangeCount: session?.topicChangeCount ?? 0,
           });
           setPhase("difficulty_check");
           return;
@@ -162,6 +164,7 @@ export function VocabDailyClient() {
               words: data.words,
               practices: [],
               usageConsumed: false,
+              topicChangeCount: 0,
             });
             setPhase("difficulty_check");
           } else if (event.type === "error") {
@@ -223,6 +226,7 @@ export function VocabDailyClient() {
           words: data.words,
           practices: [],
           usageConsumed: false,
+          topicChangeCount: session?.topicChangeCount ?? 0,
         });
       } catch {
         toast.error("网络错误");
@@ -232,6 +236,60 @@ export function VocabDailyClient() {
     },
     [session]
   );
+
+  // ── 换话题 ──
+  const handleChangeTopic = useCallback(async () => {
+    if (!session) return;
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/vocab/daily/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "change_topic" }),
+      });
+
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({ error: "请求过于频繁" }));
+        toast.error(data.error || "今日换话题次数已用完");
+        setGenerating(false);
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "换话题失败" }));
+        toast.error(data.error || "换话题失败");
+        setGenerating(false);
+        return;
+      }
+
+      // SSE 流式接收
+      for await (const event of readSSE(res)) {
+        if (event.type === "chunk") {
+          // 流式内容到达
+        } else if (event.type === "done") {
+          const data = event.result as any;
+          setSession({
+            id: data.sessionId,
+            topic: data.topic,
+            examType: data.examType,
+            difficulty: data.difficulty,
+            status: "generated",
+            words: data.words,
+            practices: [],
+            usageConsumed: false,
+            topicChangeCount: data.topicChangeCount ?? (session.topicChangeCount + 1),
+          });
+          setPhase("difficulty_check");
+        } else if (event.type === "error") {
+          toast.error(event.message);
+        }
+      }
+    } catch {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setGenerating(false);
+    }
+  }, [session]);
 
   // ── 造句完成回调 ──
   const handlePracticeDone = useCallback(() => {
@@ -305,6 +363,8 @@ export function VocabDailyClient() {
         difficulty={session.difficulty}
         examType={session.examType}
         onSelect={handleDifficulty}
+        onChangeTopic={handleChangeTopic}
+        topicChangeCount={session.topicChangeCount ?? 0}
         loading={generating}
       />
     );

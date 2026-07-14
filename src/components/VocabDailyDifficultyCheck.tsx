@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { WordItem } from "@/types";
 import { Badge } from "@/components/ui/badge";
 
@@ -10,6 +10,8 @@ interface Props {
   difficulty: string;
   examType: string;
   onSelect: (choice: "too_hard" | "too_easy" | "just_right") => void;
+  onChangeTopic: () => void;
+  topicChangeCount: number;
   loading: boolean;
 }
 
@@ -35,6 +37,8 @@ export function VocabDailyDifficultyCheck({
   difficulty,
   examType,
   onSelect,
+  onChangeTopic,
+  topicChangeCount,
   loading,
 }: Props) {
   return (
@@ -149,6 +153,31 @@ export function VocabDailyDifficultyCheck({
             )}
             难度太小
           </button>
+        </div>
+
+        {/* 换话题按钮 */}
+        <div className="mt-4">
+          <button
+            onClick={onChangeTopic}
+            disabled={loading || topicChangeCount >= 3}
+            className="px-4 py-2 rounded-xl border-2 font-medium transition-all hover:scale-105 disabled:opacity-50 flex items-center gap-2 mx-auto"
+            style={{
+              borderColor: "#ABD1C6",
+              color: topicChangeCount >= 3 ? "#999" : "#312F2C",
+            }}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            换话题
+          </button>
+          <p className="text-xs text-muted-foreground mt-1 text-center">
+            {topicChangeCount >= 3
+              ? "今日次数已用完"
+              : `今日剩余 ${3 - topicChangeCount}/3 次`}
+          </p>
         </div>
       </div>
     </div>

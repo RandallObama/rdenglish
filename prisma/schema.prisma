@@ -18,6 +18,9 @@ model User {
   lastUsageDate       String?
   lastNicknameChange  DateTime?
   failedLoginAttempts Int             @default(0)
+  lockedUntil    DateTime?
+  tokenVersion   Int             @default(0)
+  englishLevel       String?         // "middle"|"high"|"cet4"|"cet6"|"ielts"
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   writings          Writing[]
@@ -311,6 +314,7 @@ model DailyWordSession {
   scenarioMessages String?  // JSON: ScenarioTurn[]
   dictationState   String?  // JSON: DictationState
   usageConsumed    Boolean  @default(false)
+  topicChangeCount Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

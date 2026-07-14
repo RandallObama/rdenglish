@@ -21,6 +21,11 @@ export async function GET() {
     `ALTER TABLE "DailyWordSession" ADD COLUMN "dictationState" TEXT`
   ).catch(() => {});
 
+  // 自动迁移：确保 Turso 上有 topicChangeCount 列
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "DailyWordSession" ADD COLUMN "topicChangeCount" INTEGER NOT NULL DEFAULT 0`
+  ).catch(() => {});
+
   const sessionRecord = await prisma.dailyWordSession.findUnique({
     where: { userId_date: { userId, date: today } },
     include: { practices: { orderBy: { wordIndex: "asc" } } },
@@ -48,6 +53,7 @@ export async function GET() {
         ? JSON.parse(sessionRecord.dictationState)
         : undefined,
       usageConsumed: sessionRecord.usageConsumed,
+      topicChangeCount: sessionRecord.topicChangeCount ?? 0,
       practices: sessionRecord.practices.map((p) => ({
         wordIndex: p.wordIndex,
         score: p.aiScore || 0,
