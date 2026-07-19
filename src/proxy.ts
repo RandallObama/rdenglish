@@ -16,6 +16,25 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function proxy(request: NextRequest) {
+  // ── CSRF 防护：对状态变更请求校验 Origin 头 ──
+  const method = request.method.toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const origin = request.headers.get("origin");
+    // 如果请求带有 Origin 头（浏览器发起的跨站/同站请求），必须与 Host 匹配
+    if (origin) {
+      try {
+        const originHost = new URL(origin).host;
+        const host = request.nextUrl.host;
+        if (originHost !== host) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+    // 无 Origin 头的请求（原生 app、curl 等）放行，由 session 认证兜底
+  }
+
   // 生成每个请求唯一的 nonce 值
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
@@ -49,6 +68,7 @@ export function proxy(request: NextRequest) {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), interest-cohort=()");
   response.headers.set("X-DNS-Prefetch-Control", "on");
 
   return response;

@@ -11,6 +11,7 @@ import {
   getProfileFromLevel,
   streamGenerateWords,
   regenerateWordsSameTopic,
+  regenerateSelectedWords,
   pickTopicExcluding,
 } from "@/lib/vocab-daily";
 import { createSSEResponse } from "@/lib/stream";
@@ -37,9 +38,9 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { action, topic: requestTopic, difficulty: requestDifficulty } = body || {};
 
-  if (!action || !["generate", "adjust", "change_topic"].includes(action)) {
+  if (!action || !["generate", "adjust", "adjust_words", "change_topic"].includes(action)) {
     return new Response(
-      JSON.stringify({ error: "请指定 action（generate、adjust 或 change_topic）" }),
+      JSON.stringify({ error: "请指定 action（generate、adjust、adjust_words 或 change_topic）" }),
       { status: 400 }
     );
   }
@@ -107,6 +108,92 @@ export async function POST(request: Request) {
       console.error("[vocab-daily/generate] Error:", err);
       return new Response(
         JSON.stringify({ error: err?.message || "调整词汇失败" }),
+        { status: 500 }
+      );
+    }
+  }
+
+  // adjust_words 模式：选中词逐词换难度（非流式）
+  if (action === "adjust_words") {
+    const { adjustments } = body || {};
+    if (!adjustments || typeof adjustments !== "object" || Object.keys(adjustments).length === 0) {
+      return new Response(
+        JSON.stringify({ error: "请指定要调整的词汇（adjustments）" }),
+        { status: 400 }
+      );
+    }
+
+    try {
+      const existingSession = await prisma.dailyWordSession.findUnique({
+        where: { userId_date: { userId, date: today } },
+      });
+
+      if (!existingSession) {
+        return new Response(
+          JSON.stringify({ error: "还没有生成词汇，请先生成" }),
+          { status: 400 }
+        );
+      }
+
+      const currentWords = JSON.parse(existingSession.words || "[]") as WordItem[];
+      if (currentWords.length < 5) {
+        return new Response(
+          JSON.stringify({ error: "当前词汇数据异常" }),
+          { status: 400 }
+        );
+      }
+
+      // 将 adjustments key 转为数字
+      const parsedAdjustments: Record<number, "easier" | "harder"> = {};
+      for (const [k, v] of Object.entries(adjustments)) {
+        const idx = Number(k);
+        if (isNaN(idx) || idx < 0 || idx >= currentWords.length) continue;
+        if (v === "easier" || v === "harder") {
+          parsedAdjustments[idx] = v;
+        }
+      }
+
+      if (Object.keys(parsedAdjustments).length === 0) {
+        return new Response(
+          JSON.stringify({ error: "没有有效的词汇调整" }),
+          { status: 400 }
+        );
+      }
+
+      const { words: newWords } = await regenerateSelectedWords(
+        existingSession.topic,
+        profile.examType,
+        existingSession.difficulty,
+        currentWords,
+        parsedAdjustments
+      );
+
+      // 保存到数据库
+      await prisma.dailyWordSession.update({
+        where: { userId_date: { userId, date: today } },
+        data: {
+          words: JSON.stringify(newWords),
+          status: "generated",
+          currentWordIndex: 0,
+          scenarioMessages: null,
+          dictationState: null,
+        },
+      });
+
+      return new Response(
+        JSON.stringify({
+          sessionId: existingSession.id,
+          topic: existingSession.topic,
+          difficulty: existingSession.difficulty,
+          examType: profile.examType,
+          words: newWords,
+        }),
+        { status: 200 }
+      );
+    } catch (err: any) {
+      console.error("[vocab-daily/generate] adjust_words Error:", err);
+      return new Response(
+        JSON.stringify({ error: err?.message || "替换词汇失败" }),
         { status: 500 }
       );
     }

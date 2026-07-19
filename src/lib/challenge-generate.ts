@@ -73,7 +73,7 @@ export async function generateChallenge(
       timeLimit: isEasy ? 30 : 40,
     };
   } catch (e) {
-    console.error("generateChallenge JSON parse error:", e, "\nRaw:", raw);
+    console.error("generateChallenge JSON parse error:", e, "\nRaw[truncated]:", raw.slice(0, 200));
     // 兜底：返回一个基础题目
     return {
       topic,

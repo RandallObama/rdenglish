@@ -249,11 +249,11 @@ export default function RegisterPage() {
                     id="password-email"
                     type="password"
                     autoComplete="new-password"
-                    placeholder="至少 6 位"
+                    placeholder="至少 8 位，含大小写字母和数字"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                 </div>
 
@@ -344,11 +344,11 @@ export default function RegisterPage() {
                     id="password-phone"
                     type="password"
                     autoComplete="new-password"
-                    placeholder="至少 6 位"
+                    placeholder="至少 8 位，含大小写字母和数字"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                 </div>
 

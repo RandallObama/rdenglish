@@ -13,6 +13,7 @@ import {
   Loader2, ShieldCheck, Mail, Phone, User, Clock, Key, Calendar,
   PenLine, Sparkles, CheckCircle, BookOpen, Bookmark, Lightbulb,
   BarChart3, Library, Users, LayoutDashboard, History, LogOut,
+  GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getBtnStyle } from "@/lib/button-colors";
@@ -26,6 +27,7 @@ interface ProfileData {
   email: string | null;
   phone: string | null;
   lastNicknameChange: string | null;
+  englishLevel: string | null;
   createdAt: string;
 }
 
@@ -68,6 +70,11 @@ export default function ProfilePage() {
   const [pwLoading, setPwLoading] = useState(false);
   const pwCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── 英语水平 ──
+  const [englishLevel, setEnglishLevel] = useState<string>("");
+  const [levelLoading, setLevelLoading] = useState(false);
+  const [levelError, setLevelError] = useState("");
+
   // ── 通用错误 ──
   const [globalError, setGlobalError] = useState("");
   // 各模块独立错误
@@ -87,6 +94,7 @@ export default function ProfilePage() {
         } else {
           setProfile(data);
           setNickname(data.name || "");
+          setEnglishLevel(data.englishLevel || "");
         }
       })
       .catch(() => {
@@ -305,8 +313,21 @@ export default function ProfilePage() {
       setPwError("请输入6位验证码");
       return;
     }
-    if (newPassword.length < 6) {
-      setPwError("密码至少需要 6 位");
+    // 密码强度校验（与服务端 password-utils.ts 保持一致）
+    if (!newPassword || newPassword.length < 8) {
+      setPwError("密码至少需要 8 位");
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      setPwError("密码需要包含至少一个大写字母");
+      return;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      setPwError("密码需要包含至少一个小写字母");
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setPwError("密码需要包含至少一个数字");
       return;
     }
     setPwLoading(true);
@@ -330,6 +351,52 @@ export default function ProfilePage() {
       setPwLoading(false);
     }
   };
+
+  // ── 设置英语水平 ──
+  const { update: updateSession } = useSession();
+  const handleSetEnglishLevel = async (level: string) => {
+    setLevelError("");
+    setLevelLoading(true);
+    try {
+      const res = await fetch("/api/profile/english-level", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ englishLevel: level }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLevelError(data.error || "设置失败");
+        return;
+      }
+      setEnglishLevel(level);
+      setProfile((prev) =>
+        prev ? { ...prev, englishLevel: level } : prev
+      );
+      // 刷新 session 让全局状态同步
+      await updateSession();
+      toast.success(`英语水平已设为「${levelLabel(level)}」`);
+    } catch {
+      setLevelError("网络错误，请稍后重试");
+    } finally {
+      setLevelLoading(false);
+    }
+  };
+
+  const levelLabel = (v: string) => {
+    const map: Record<string, string> = {
+      middle: "初中", high: "高中", cet4: "四级",
+      cet6: "六级", ielts: "雅思/托福",
+    };
+    return map[v] || v;
+  };
+
+  const LEVEL_OPTIONS = [
+    { value: "middle", label: "初中" },
+    { value: "high", label: "高中" },
+    { value: "cet4", label: "四级" },
+    { value: "cet6", label: "六级" },
+    { value: "ielts", label: "雅思/托福" },
+  ];
 
   // ── 加载中 ──
   if (status === "loading" || (pageLoading && status !== "unauthenticated")) {
@@ -699,10 +766,10 @@ export default function ProfilePage() {
                 <div className="flex gap-2">
                   <Input
                     type="password"
-                    placeholder="新密码（至少6位）"
+                    placeholder="新密码（至少8位，含大小写字母和数字）"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    minLength={6}
+                    minLength={8}
                     className="flex-1"
                   />
                   <Button
@@ -723,6 +790,45 @@ export default function ProfilePage() {
                 )}
               </>
             )}
+          </CardContent>
+        </Card>
+
+        {/* ═══ 6. 英语水平 ═══ */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <GraduationCap className="h-5 w-5" />
+              英语水平
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              {LEVEL_OPTIONS.map((opt) => {
+                const isActive = englishLevel === opt.value;
+                return (
+                  <Button
+                    key={opt.value}
+                    variant={isActive ? "default" : "outline"}
+                    onClick={() => handleSetEnglishLevel(opt.value)}
+                    disabled={levelLoading}
+                    className="text-sm"
+                    style={
+                      isActive
+                        ? getBtnStyle("profile:level-active")
+                        : getBtnStyle("profile:level-inactive")
+                    }
+                  >
+                    {opt.label}
+                  </Button>
+                );
+              })}
+            </div>
+            {levelError && (
+              <p className="text-sm text-destructive">{levelError}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              选择后每日5词、批改和翻译将根据你的水平定制难度，可随时修改
+            </p>
           </CardContent>
         </Card>
       </div>

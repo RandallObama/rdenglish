@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import dns from "dns/promises";
 import { extractClientIp, checkRegisterRateLimit } from "@/lib/rate-limit-register";
+import { validatePasswordStrength } from "@/lib/password-utils";
 
 /** 检查邮箱域名的 MX 记录，验证域名是否真的能收邮件 */
 async function domainHasMailServer(email: string): Promise<boolean> {
@@ -62,9 +63,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (trimmedPassword.length < 6) {
+    const pwdCheck = validatePasswordStrength(trimmedPassword);
+    if (!pwdCheck.valid) {
       return NextResponse.json(
-        { error: "密码至少需要 6 位" },
+        { error: pwdCheck.error },
         { status: 400 }
       );
     }

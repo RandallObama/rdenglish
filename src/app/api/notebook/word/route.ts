@@ -49,7 +49,7 @@ export async function GET() {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("GET /api/notebook/word error:", msg);
-    return NextResponse.json({ error: `加载失败: ${msg}` }, { status: 500 });
+    return NextResponse.json({ error: "加载失败，请稍后重试" }, { status: 500 });
   }
 }
 

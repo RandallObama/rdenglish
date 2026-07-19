@@ -237,6 +237,42 @@ export function VocabDailyClient() {
     [session]
   );
 
+  // ── 逐词换难度 ──
+  const handleAdjustWords = useCallback(
+    async (adjustments: Record<number, "easier" | "harder">) => {
+      if (!session) return;
+      setGenerating(true);
+      try {
+        const res = await fetch("/api/vocab/daily/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "adjust_words",
+            adjustments,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(data.error || "替换失败");
+          return;
+        }
+
+        setSession({
+          ...session,
+          words: data.words,
+          status: "generated",
+          practices: [],
+        });
+      } catch {
+        toast.error("网络错误");
+      } finally {
+        setGenerating(false);
+      }
+    },
+    [session]
+  );
+
   // ── 换话题 ──
   const handleChangeTopic = useCallback(async () => {
     if (!session) return;
@@ -363,6 +399,7 @@ export function VocabDailyClient() {
         difficulty={session.difficulty}
         examType={session.examType}
         onSelect={handleDifficulty}
+        onAdjustWords={handleAdjustWords}
         onChangeTopic={handleChangeTopic}
         topicChangeCount={session.topicChangeCount ?? 0}
         loading={generating}

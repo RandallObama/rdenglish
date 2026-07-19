@@ -173,7 +173,7 @@ export async function translateAndAnalyze(
   try {
     return JSON.parse(jsonStr) as TranslationResult;
   } catch (e) {
-    console.error("translateAndAnalyze JSON parse error:", e, "\nRaw:", content);
+    console.error("translateAndAnalyze JSON parse error:", e, "\nRaw[truncated]:", content.slice(0, 200));
     return {
       english: "翻译失败，请稍后重试",
       grammarNotes: [],
@@ -217,7 +217,7 @@ export async function* streamTranslateAndAnalyze(
   try {
     return JSON.parse(jsonStr) as TranslationResult;
   } catch (e) {
-    console.error("streamTranslateAndAnalyze JSON parse error:", e, "\nRaw:", fullContent);
+    console.error("streamTranslateAndAnalyze JSON parse error:", e, "\nRaw[truncated]:", fullContent.slice(0, 200));
     return {
       english: "翻译失败，请稍后重试",
       grammarNotes: [],

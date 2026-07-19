@@ -6,11 +6,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkAdmin } from "@/lib/auth-helpers";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  }
+
+  // 管理员权限检查
+  if (!(await checkAdmin(session.user.id))) {
+    return NextResponse.json({ error: "无权访问" }, { status: 403 });
   }
 
   const results: string[] = [];

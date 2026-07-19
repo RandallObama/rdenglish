@@ -8,15 +8,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateChallenge } from "@/lib/challenge-generate";
-
-/** 检查是否为管理员 */
-async function checkAdmin(userId: string): Promise<boolean> {
-  const adminIds = (process.env.ADMIN_USER_IDS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return adminIds.includes(userId);
-}
+import { checkAdmin } from "@/lib/auth-helpers";
 
 export async function PATCH(
   request: Request,

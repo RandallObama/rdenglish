@@ -37,9 +37,9 @@ export async function sendSmsCode(phone: string, code: string): Promise<{ succes
     return { success: true };
   }
 
-  console.log(`[SMS] 🚀 开始发送短信 (生产模式)`);
-  console.log(`[SMS] 📱 手机号: ${phone}`);
-  console.log(`[SMS] 📋 模板 ID: ${templateId}`);
+  // 生产模式：脱敏日志，不打印完整手机号
+  const maskedPhone = phone.slice(0, 3) + "****" + phone.slice(-4);
+  console.log(`[SMS] 🚀 发送短信 - 手机: ${maskedPhone}`);
 
   try {
     const url = `https://push.spug.cc/send/${templateId}`;

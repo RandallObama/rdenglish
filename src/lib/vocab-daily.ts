@@ -266,6 +266,125 @@ export async function regenerateWordsSameTopic(
 }
 
 // ═══════════════════════════════════════════════════════════
+// 3b. regenerateSelectedWords — 选中词逐词换难度
+// ═══════════════════════════════════════════════════════════
+
+const DIFFICULTY_ORDER = ["easy", "medium", "hard"] as const;
+
+function adjustDifficulty(current: string, direction: "easier" | "harder"): string {
+  const idx = DIFFICULTY_ORDER.indexOf(current as (typeof DIFFICULTY_ORDER)[number]);
+  if (idx === -1) return current;
+  if (direction === "easier") {
+    return DIFFICULTY_ORDER[Math.max(0, idx - 1)];
+  } else {
+    return DIFFICULTY_ORDER[Math.min(DIFFICULTY_ORDER.length - 1, idx + 1)];
+  }
+}
+
+function makeRegenerateSelectedPrompt(
+  topic: string,
+  currentWords: WordItem[],
+  currentDifficulty: string,
+  adjustments: Record<number, "easier" | "harder">
+): string {
+  const entries = currentWords.map((w, i) => {
+    const adj = adjustments[i];
+    if (adj) {
+      const targetDiff = adjustDifficulty(currentDifficulty, adj);
+      const targetLabel = DIFFICULTY_LABELS[targetDiff] || targetDiff;
+      const reason = adj === "easier" ? "太难了" : "太简单了";
+      return `第${i + 1}个词「${w.word}」（${w.partOfSpeech}，${w.chinese}）：${reason}，请替换为一个 **${targetLabel}** 级别的同话题词`;
+    }
+    return `第${i + 1}个词「${w.word}」（${w.partOfSpeech}，${w.chinese}）：保留，不需要替换`;
+  }).join("\n");
+
+  return `你是一位资深英语教师和考试专家，拥有15年英语教学经验。
+
+学生正在学习话题「${topic}」的词汇。当前有 5 个词，部分词的难度不合适，需要替换。
+
+## 当前词汇列表
+${entries}
+
+## 要求
+- 只为标记为"替换"的词生成新词
+- 替换词必须在话题「${topic}」下语义相关
+- 替换词不能与列表中任何已有词重复
+- 替换词必须实用、常用，不能是生僻词或专业术语
+- 每个替换词给出完整信息（搭配、例句、词源等）
+- 如果要求更简单的词 → 选更基础、更高频的词
+- 如果要求更难的词 → 选更高级、更学术的词
+
+## 每个替换词请提供
+- index: 在原列表中的位置（从 0 开始）
+- word: 单词本身
+- chinese: 中文释义
+- phoneticUK: 英式音标（IPA 格式），必填
+- phoneticUS: 美式音标（IPA 格式），必填
+- partOfSpeech: 词性（verb / noun / adjective / adverb / phrase）
+- definition: 简短英语定义
+- collocations: 3 个常用搭配（词组形式）
+- usage: 用法说明（中文，1-2 句话）
+- example: 一句完整的英语例句
+- etymology: 词源讲解（中文，1-3句话）
+
+## 输出格式（纯 JSON，不要 markdown 代码块）
+{
+  "replacements": [
+    { "index": 0, "word": "...", "chinese": "...", ... },
+    ...
+  ]
+}`;
+}
+
+export async function regenerateSelectedWords(
+  topic: string,
+  examType: string,
+  currentDifficulty: string,
+  currentWords: WordItem[],
+  adjustments: Record<number, "easier" | "harder">
+): Promise<{ words: WordItem[] }> {
+  const systemPrompt = makeRegenerateSelectedPrompt(topic, currentWords, currentDifficulty, adjustments);
+  const adjustCount = Object.keys(adjustments).length;
+
+  const response = await aiClient.chat.completions.create({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `请为话题「${topic}」替换 ${adjustCount} 个词汇。` },
+    ],
+    temperature: 0.8,
+    max_tokens: 4096,
+  });
+
+  const content = response.choices[0]?.message?.content || "";
+  const jsonStr = parseAIJson(content);
+
+  let result: { replacements: Array<WordItem & { index: number }> };
+  try {
+    result = JSON.parse(jsonStr);
+  } catch {
+    throw new Error(`AI 替换词汇返回格式异常：${content.slice(0, 300)}`);
+  }
+
+  if (!result.replacements || !Array.isArray(result.replacements)) {
+    throw new Error("AI 未返回有效的替换词汇");
+  }
+
+  // 合并：保留未调整的旧词，插入新替换词
+  const newWords = [...currentWords];
+  for (const rep of result.replacements) {
+    const idx = rep.index;
+    if (idx >= 0 && idx < newWords.length && adjustments[idx]) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { index: _idx, ...wordData } = rep;
+      newWords[idx] = wordData as WordItem;
+    }
+  }
+
+  return { words: newWords };
+}
+
+// ═══════════════════════════════════════════════════════════
 // 4. evaluateSentence — 评价用户造句
 // ═══════════════════════════════════════════════════════════
 

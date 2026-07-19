@@ -362,7 +362,7 @@ export async function optimizeEssay(
     }
     return parsed;
   } catch (e) {
-    console.error("optimizeEssay JSON parse error:", e, "\nRaw:", raw);
+    console.error("optimizeEssay JSON parse error:", e, "\nRaw[truncated]:", raw.slice(0, 200));
     return {
       optimizedText: text,
       improvements: [],
@@ -418,7 +418,7 @@ export async function* streamOptimizeEssay(
     }
     return parsed;
   } catch (e) {
-    console.error("streamOptimizeEssay JSON parse error:", e, "\nRaw:", fullContent);
+    console.error("streamOptimizeEssay JSON parse error:", e, "\nRaw[truncated]:", fullContent.slice(0, 200));
     return {
       optimizedText: text,
       improvements: [],

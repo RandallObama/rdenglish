@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { normalizePhone } from "@/lib/phone-utils";
+import { validatePasswordStrength } from "@/lib/password-utils";
 
 export async function POST(request: Request) {
   try {
@@ -25,9 +26,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (newPassword.length < 6) {
+    const pwdCheck = validatePasswordStrength(newPassword);
+    if (!pwdCheck.valid) {
       return NextResponse.json(
-        { error: "密码至少需要 6 位" },
+        { error: pwdCheck.error },
         { status: 400 }
       );
     }
@@ -114,6 +116,7 @@ export async function POST(request: Request) {
       data: {
         passwordHash,
         failedLoginAttempts: 0,
+        tokenVersion: { increment: 1 }, // 使所有旧 JWT 失效
       },
     });
 

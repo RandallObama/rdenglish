@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { isValidChinesePhone, normalizePhone, maskPhone } from "@/lib/phone-utils";
 import { extractClientIp, checkRegisterRateLimit } from "@/lib/rate-limit-register";
+import { validatePasswordStrength } from "@/lib/password-utils";
 
 export async function POST(request: Request) {
   const ip = extractClientIp(request);
@@ -47,9 +48,10 @@ export async function POST(request: Request) {
 
     const trimmedPassword = password.trim();
 
-    if (trimmedPassword.length < 6) {
+    const pwdCheck = validatePasswordStrength(trimmedPassword);
+    if (!pwdCheck.valid) {
       return NextResponse.json(
-        { error: "密码至少需要 6 位" },
+        { error: pwdCheck.error },
         { status: 400 }
       );
     }

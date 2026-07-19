@@ -14,6 +14,11 @@ export async function GET() {
   }
 
   try {
+    // ── Turso 自动迁移：englishLevel 列 ──
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE User ADD COLUMN englishLevel TEXT`
+    ).catch(() => {});
+
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -22,6 +27,7 @@ export async function GET() {
         email: true,
         phone: true,
         lastNicknameChange: true,
+        englishLevel: true,
         createdAt: true,
       },
     });

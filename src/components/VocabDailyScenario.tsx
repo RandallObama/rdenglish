@@ -4,7 +4,6 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Loader2, Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { getBtnStyle } from "@/lib/button-colors";
 import { readSSE } from "@/lib/stream";
 import type { WordItem, ScenarioTurnResult } from "@/types";
 
@@ -191,7 +190,7 @@ export function VocabDailyScenario({
       {/* 场景信息 */}
       <div className="text-center mb-4">
         <h2 className="text-xl font-bold mb-1">🎭 场景挑战</h2>
-        <p className="text-sm text-muted-foreground">话题：{topic}</p>
+        <p className="text-sm text-muted-foreground">话题：{topic} · 试着一次性用上全部词汇</p>
       </div>
 
       {/* 词汇追踪 */}
@@ -257,16 +256,6 @@ export function VocabDailyScenario({
               }
             >
               <p className="leading-relaxed whitespace-pre-wrap">{turn.content}</p>
-              {turn.role === "ai" && turn.usedWords && turn.usedWords.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-white/20 text-xs opacity-75">
-                  💡 已使用：{turn.usedWords.join(", ")}
-                </div>
-              )}
-              {turn.role === "user" && turn.usedWords && turn.usedWords.length > 0 && (
-                <div className="mt-1 text-xs opacity-75">
-                  💬 尝试使用：{turn.usedWords.join(", ")}
-                </div>
-              )}
             </div>
           </div>
         ))}
@@ -300,7 +289,7 @@ export function VocabDailyScenario({
           >
             <p className="text-lg font-bold mb-2">🎉 挑战完成！</p>
             <p className="text-sm text-muted-foreground">
-              你成功在对话中使用了全部 5 个词汇！
+              你已经在对话中自然地运用了全部 5 个词汇！
             </p>
             {turns[turns.length - 1]?.review && (
               <div className="mt-3 text-sm border-t pt-3">
@@ -329,7 +318,7 @@ export function VocabDailyScenario({
             }}
             placeholder={
               unusedWords.length > 0
-                ? `试试用上 "${unusedWords[0]!.word}"...`
+                ? `试着用上：${unusedWords.map((w) => w.word).join("、")}`
                 : "输入你的回复..."
             }
             className="flex-1 px-4 py-3 rounded-xl border text-sm focus:outline-none focus:ring-2"

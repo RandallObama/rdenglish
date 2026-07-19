@@ -66,17 +66,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // 生成 6 位验证码（密码学安全随机）
-    const codeArray = new Uint8Array(4);
-    crypto.getRandomValues(codeArray);
-    const code = String(
-      (codeArray[0]! % 9 + 1) * 100000 +
-        (codeArray[1]! % 10) * 10000 +
-        (codeArray[2]! % 10) * 1000 +
-        (codeArray[3]! % 10) * 100 +
-        ((codeArray[0]! + codeArray[1]!) % 10) * 10 +
-        ((codeArray[2]! + codeArray[3]!) % 10)
-    ).padStart(6, "0");
+    // 生成 6 位验证码（crypto 安全随机，完整 6 位独立熵）
+    const randomArray = new Uint32Array(1);
+    crypto.getRandomValues(randomArray);
+    const code = String(randomArray[0] % 1_000_000).padStart(6, "0");
 
     // bcrypt 哈希存储（不存明文）
     const codeHash = await bcrypt.hash(code, 8);
@@ -96,17 +89,17 @@ export async function POST(request: Request) {
     if (!smsResult.success) {
       console.error(`[SMS] ❌ 发送失败 - 手机: ${maskPhone(normalized)}, 原因: ${smsResult.detail || "未知"}`);
       return NextResponse.json(
-        { error: `验证码发送失败${smsResult.detail ? `: ${smsResult.detail}` : "，请稍后重试"}` },
+        { error: "验证码发送失败，请稍后重试" },
         { status: 500 }
       );
     }
 
-    // 开发环境：在响应中返回验证码（因为短信不会真实发送）
-    const isDev = process.env.NODE_ENV !== "production";
+    // 仅本地开发时返回验证码（Dev Token 模式，需显式设置环境变量）
+    const isLocalDev = process.env.DEV_SMS_DEBUG === "true";
     return NextResponse.json({
       success: true,
       message: "验证码已发送",
-      ...(isDev ? { devCode: code } : {}),
+      ...(isLocalDev ? { devCode: code } : {}),
     });
   } catch (error) {
     console.error("SMS send error:", error);

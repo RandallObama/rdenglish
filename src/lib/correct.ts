@@ -516,7 +516,7 @@ export async function correctEssay(
     parsed.examType = examType;
     return parsed;
   } catch (e) {
-    console.error("correctEssay JSON parse error:", e, "\nRaw content:", raw);
+    console.error("correctEssay JSON parse error:", e, "\nRaw[truncated]:", raw.slice(0, 200));
     return {
       totalScore: 0,
       maxScore: standard.maxScore,
@@ -570,7 +570,7 @@ export async function* streamCorrectEssay(
     parsed.examType = examType;
     return parsed;
   } catch (e) {
-    console.error("streamCorrectEssay JSON parse error:", e, "\nRaw content:", fullContent);
+    console.error("streamCorrectEssay JSON parse error:", e, "\nRaw[truncated]:", fullContent.slice(0, 200));
     return {
       totalScore: 0,
       maxScore: standard.maxScore,

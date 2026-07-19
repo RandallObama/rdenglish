@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkFriendRateLimit } from "@/lib/rate-limit-friend";
 
 const CACHE_HEADER = { "Cache-Control": "private, max-age=5, stale-while-revalidate=10" };
 
@@ -105,6 +106,16 @@ export async function POST(request: Request) {
     }
 
     const userId = session.user.id;
+
+    // 消息发送频率限制（复用好友限速器，每分钟 10 次）
+    const rateLimit = await checkFriendRateLimit(userId);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "发送过于频繁，请稍后再试" },
+        { status: 429 }
+      );
+    }
+
     let body: { receiverId?: string; content?: string; contentType?: string; contentId?: string };
     try {
       body = await request.json();

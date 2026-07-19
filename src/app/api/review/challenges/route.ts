@@ -6,15 +6,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-/** 检查是否为管理员 */
-async function checkAdmin(userId: string): Promise<boolean> {
-  const adminIds = (process.env.ADMIN_USER_IDS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return adminIds.includes(userId);
-}
+import { checkAdmin } from "@/lib/auth-helpers";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -27,7 +19,10 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status") || "pending_review"; // 默认只看待审核
+  const rawStatus = searchParams.get("status") || "pending_review";
+  // 白名单校验 status 参数，防止任意值注入
+  const ALLOWED_STATUSES = ["pending_review", "approved", "rejected", "all"];
+  const status = ALLOWED_STATUSES.includes(rawStatus) ? rawStatus : "pending_review";
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
   const pageSize = 30;
   const skip = (page - 1) * pageSize;

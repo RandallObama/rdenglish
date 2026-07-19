@@ -166,6 +166,24 @@ export interface UsageInfo {
 export type WritingStyle = "academic" | "business" | "daily";
 export type OptimizeStyle = WritingStyle | "creative" | "persuasive";
 export type ExamType = "middle" | "high" | "cet4" | "cet6" | "ielts" | "general" | "literary";
+export type EnglishLevel = "middle" | "high" | "cet4" | "cet6" | "ielts";
+
+export const ENGLISH_LEVEL_LABELS: Record<EnglishLevel, string> = {
+  middle: "初中",
+  high: "高中",
+  cet4: "四级",
+  cet6: "六级",
+  ielts: "雅思/托福",
+};
+
+export const ENGLISH_LEVEL_OPTIONS: { value: EnglishLevel; label: string }[] = [
+  { value: "middle", label: "初中" },
+  { value: "high", label: "高中" },
+  { value: "cet4", label: "四级" },
+  { value: "cet6", label: "六级" },
+  { value: "ielts", label: "雅思/托福" },
+];
+
 export type OptimizeIntensity = "light" | "medium" | "deep";
 export type OptimizeMode = "full" | "fragment";
 

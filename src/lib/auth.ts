@@ -87,6 +87,17 @@ const providers: Provider[] = [
         throw new Error("登录尝试过于频繁，请 60 秒后再试");
       }
 
+      // 自动迁移：确保 Turso 上有 lockedUntil、tokenVersion、englishLevel 列
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "User" ADD COLUMN "lockedUntil" DATETIME`
+      ).catch(() => {});
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "User" ADD COLUMN "tokenVersion" INTEGER NOT NULL DEFAULT 0`
+      ).catch(() => {});
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "User" ADD COLUMN "englishLevel" TEXT`
+      ).catch(() => {});
+
       // 自动识别手机号 / 邮箱
       const isPhone = /^1[3-9]\d{9}$/.test(identifier);
 
@@ -96,6 +107,15 @@ const providers: Provider[] = [
 
       if (!user) {
         return null;
+      }
+
+      // 账户锁定检查：连续失败 3 次后锁定 15 分钟
+      const LOCKOUT_MINUTES = 15;
+      if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+        const remainingMin = Math.ceil(
+          (new Date(user.lockedUntil).getTime() - Date.now()) / 60_000
+        );
+        throw new Error(`账户已临时锁定，请 ${remainingMin} 分钟后再试`);
       }
 
       const isValid = await bcrypt.compare(password, user.passwordHash);
@@ -108,7 +128,16 @@ const providers: Provider[] = [
         });
 
         if (updated.failedLoginAttempts >= 3) {
-          // Throw CredentialsSignin with custom code so frontend can detect it
+          // 锁定账户 15 分钟
+          const lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60_000);
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginAttempts: 0,
+              lockedUntil: lockUntil,
+            },
+          }).catch(() => {}); // 忽略 lockedUntil 列不存在的情况
+
           const err = new CredentialsSignin();
           err.code = "RESET_NEEDED";
           throw err;
@@ -116,12 +145,12 @@ const providers: Provider[] = [
         return null;
       }
 
-      // 登录成功，清除限速记录 + 重置连续失败计数
+      // 登录成功：清除限速记录 + 重置连续失败计数 + 解除锁定
       await clearLoginRateLimit(identifier);
       await prisma.user.update({
         where: { id: user.id },
-        data: { failedLoginAttempts: 0 },
-      });
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      }).catch(() => {});
 
       return {
         id: user.id,
@@ -145,6 +174,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
+    maxAge: 7 * 24 * 60 * 60, // 7 天 JWT 过期（之前默认 30 天过长）
+  },
+  cookies: {
+    sessionToken: {
+      options: {
+        sameSite: "lax", // CSRF 保护：跨站 POST 不发送 cookie，但允许顶层导航携带
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+      },
+    },
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -157,13 +196,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const userId = token.sub as string | undefined;
       if (userId) {
         try {
+          // 自动迁移：确保 Turso 上有 tokenVersion、lockedUntil、englishLevel 列
+          await prisma.$executeRawUnsafe(
+            `ALTER TABLE "User" ADD COLUMN "tokenVersion" INTEGER NOT NULL DEFAULT 0`
+          ).catch(() => {});
+          await prisma.$executeRawUnsafe(
+            `ALTER TABLE "User" ADD COLUMN "lockedUntil" DATETIME`
+          ).catch(() => {});
+          await prisma.$executeRawUnsafe(
+            `ALTER TABLE "User" ADD COLUMN "englishLevel" TEXT`
+          ).catch(() => {});
+
           const existingUser = await prisma.user.findUnique({
             where: { id: userId },
-            select: { id: true },
+            select: { id: true, englishLevel: true, tokenVersion: true },
           });
           if (!existingUser) {
             // 用户已被删除，销毁会话
             return null;
+          }
+          // 会话失效检查：如果 tokenVersion 不匹配（密码已修改），销毁会话
+          if (
+            existingUser.tokenVersion !== undefined &&
+            token.tokenVersion !== undefined &&
+            existingUser.tokenVersion !== token.tokenVersion
+          ) {
+            return null;
+          }
+          token.englishLevel = existingUser.englishLevel;
+          // 首次登录时设置 tokenVersion，后续每次回调保持同步
+          if (existingUser.tokenVersion !== undefined) {
+            token.tokenVersion = existingUser.tokenVersion;
           }
         } catch {
           // 数据库查询失败时，默认允许通过，避免误封
@@ -175,8 +238,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.englishLevel = token.englishLevel as string | null;
       }
       return session;
     },
   },
 });
+
+// ── NextAuth 类型扩展 ──
+declare module "next-auth" {
+  interface User {
+    englishLevel?: string | null;
+  }
+  interface Session {
+    user: {
+      id: string;
+      englishLevel?: string | null;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    };
+  }
+}
+
+declare module "@auth/core/jwt" {
+  interface JWT {
+    id: string;
+    englishLevel?: string | null;
+    tokenVersion?: number;
+  }
+}

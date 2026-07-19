@@ -54,6 +54,12 @@ export default function ResetPasswordPage() {
         return;
       }
 
+      // 无绑定手机号 / 短信发送失败 → 显示消息，留在 Step 1
+      if (data.codeSent === false) {
+        setError(data.message || "无法发送验证码，请稍后重试或联系管理员");
+        return;
+      }
+
       // 开发模式：显示验证码
       if (data.devCode) {
         toast.success("验证码（开发模式）", {
@@ -63,7 +69,7 @@ export default function ResetPasswordPage() {
         setCode(data.devCode);
       }
 
-      setSuccessMsg(data.message || "如果该账号绑定了手机号，验证码已发送");
+      setSuccessMsg(data.message || "验证码已发送，请查收短信");
       setStep(2);
     } catch {
       setError("网络错误，请稍后重试");
@@ -82,8 +88,21 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError("密码至少需要 6 位");
+    // 密码强度校验（与服务端 password-utils.ts 保持一致）
+    if (!newPassword || newPassword.length < 8) {
+      setError("密码至少需要 8 位");
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      setError("密码需要包含至少一个大写字母");
+      return;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      setError("密码需要包含至少一个小写字母");
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setError("密码需要包含至少一个数字");
       return;
     }
 
@@ -206,12 +225,15 @@ export default function ResetPasswordPage() {
                 <Input
                   id="newPassword"
                   type="password"
-                  placeholder="至少 6 位"
+                  placeholder="至少 8 位，含大小写字母和数字"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={8}
                 />
+                <p className="text-xs text-muted-foreground">
+                  至少 8 位，需包含大写字母、小写字母和数字
+                </p>
               </div>
 
               {error && (

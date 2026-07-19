@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -78,6 +79,16 @@ export function Optimizer({ onResult, onError }: OptimizerProps) {
   const cowriteRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
+  const { data: session } = useSession();
+
+  // 当 session 加载后，将 examType 默认值设为用户的英语水平
+  const examLevelInitialized = useRef(false);
+  useEffect(() => {
+    if (!examLevelInitialized.current && session?.user?.englishLevel) {
+      setExamType(session.user.englishLevel);
+      examLevelInitialized.current = true;
+    }
+  }, [session?.user?.englishLevel]);
 
   // 点击外部关闭续写弹窗
   useEffect(() => {

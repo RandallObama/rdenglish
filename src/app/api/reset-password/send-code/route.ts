@@ -1,11 +1,12 @@
 /**
  * POST /api/reset-password/send-code — 忘记密码：发送验证码
- * 无需登录。防枚举：始终返回相同消息。
+ * 无需登录。
  *
  * 流程：
  * 1. 查找用户（邮箱或手机号）
- * 2. 有手机号 → 发送验证码；无 → dummy bcrypt 防时序
- * 3. 始终返回："如果该账号绑定了手机号，验证码已发送"
+ * 2. 有手机号 → 发送验证码，返回 codeSent: true
+ * 3. 无手机号 → dummy bcrypt 防时序，返回 codeSent: false
+ * 4. 前端根据 codeSent 决定进入验证码步骤还是提示绑定手机号
  */
 
 import { NextResponse } from "next/server";
@@ -34,7 +35,8 @@ export async function POST(request: Request) {
       // 防枚举：不区分错误类型
       return NextResponse.json({
         success: true,
-        message: "如果该账号绑定了手机号，验证码已发送",
+        codeSent: false,
+        message: "请输入有效的邮箱或手机号",
       });
     }
 
@@ -51,12 +53,13 @@ export async function POST(request: Request) {
       select: { phone: true },
     });
 
-    // 未找到或无绑定手机号 → dummy bcrypt + 通用响应
+    // 未找到或无绑定手机号 → dummy bcrypt + 告知前端无法发送
     if (!user || !user.phone) {
       await bcrypt.hash("dummy", 4);
       return NextResponse.json({
         success: true,
-        message: "如果该账号绑定了手机号，验证码已发送",
+        codeSent: false,
+        message: "该账号未绑定手机号，无法通过短信重置密码",
       });
     }
 
@@ -81,21 +84,15 @@ export async function POST(request: Request) {
     if (recentCode) {
       return NextResponse.json({
         success: true,
-        message: "如果该账号绑定了手机号，验证码已发送",
+        codeSent: true,
+        message: "验证码已发送，请查收短信",
       });
     }
 
-    // 生成 6 位验证码
-    const codeArray = new Uint8Array(4);
-    crypto.getRandomValues(codeArray);
-    const code = String(
-      (codeArray[0]! % 9 + 1) * 100000 +
-        (codeArray[1]! % 10) * 10000 +
-        (codeArray[2]! % 10) * 1000 +
-        (codeArray[3]! % 10) * 100 +
-        ((codeArray[0]! + codeArray[1]!) % 10) * 10 +
-        ((codeArray[2]! + codeArray[3]!) % 10)
-    ).padStart(6, "0");
+    // 生成 6 位验证码（crypto 安全随机，完整 6 位独立熵）
+    const randomArray = new Uint32Array(1);
+    crypto.getRandomValues(randomArray);
+    const code = String(randomArray[0] % 1_000_000).padStart(6, "0");
 
     // bcrypt 哈希存储
     const codeHash = await bcrypt.hash(code, 8);
@@ -110,17 +107,25 @@ export async function POST(request: Request) {
 
     // 发送短信
     const smsResult = await sendSmsCode(user.phone, code);
+    const smsSent = smsResult.success;
 
-    if (!smsResult.success) {
-      console.error(`[ResetPwd] SMS 发送失败 - 原因: ${smsResult.detail || "未知"}`);
-      // 仍然返回通用消息，不暴露内部失败
+    if (!smsSent) {
+      console.error(`[ResetPwd] SMS 发送失败 - 手机: ${user.phone.slice(0, 3)}****${user.phone.slice(-4)} - 原因: ${smsResult.detail || "未知"}`);
+      // 删除刚创建的无效验证码记录，避免冷却期误判为"已发送"
+      await prisma.smsCode.deleteMany({
+        where: { phone: user.phone, codeHash },
+      }).catch(() => {});
     }
 
-    const isDev = process.env.NODE_ENV !== "production";
+    // 仅本地开发时返回验证码（Dev Token 模式，需显式设置环境变量）
+    const isLocalDev = process.env.DEV_SMS_DEBUG === "true";
     return NextResponse.json({
       success: true,
-      message: "如果该账号绑定了手机号，验证码已发送",
-      ...(isDev ? { devCode: code } : {}),
+      codeSent: smsSent,
+      message: smsSent
+        ? "验证码已发送，请查收短信"
+        : "验证码发送失败，请稍后重试或联系管理员",
+      ...(isLocalDev && smsSent ? { devCode: code } : {}),
     });
   } catch (error) {
     console.error("POST /api/reset-password/send-code error:", error);

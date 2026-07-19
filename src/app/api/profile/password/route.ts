@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { validatePasswordStrength } from "@/lib/password-utils";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -24,9 +25,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (newPassword.length < 6) {
+    const pwdCheck = validatePasswordStrength(newPassword);
+    if (!pwdCheck.valid) {
       return NextResponse.json(
-        { error: "密码至少需要 6 位" },
+        { error: pwdCheck.error },
         { status: 400 }
       );
     }
@@ -93,7 +95,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 标记验证码已使用 + 更新密码（并行，互不依赖）
+    // 标记验证码已使用 + 更新密码 + 递增 tokenVersion（使所有旧 JWT 失效）
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     await Promise.all([
@@ -103,7 +105,10 @@ export async function POST(request: Request) {
       }),
       prisma.user.update({
         where: { id: session.user.id },
-        data: { passwordHash },
+        data: {
+          passwordHash,
+          tokenVersion: { increment: 1 },
+        },
       }),
     ]);
 
