@@ -1,4 +1,5 @@
-import { eachDayOfInterval, format } from "date-fns";
+import { eachDayOfInterval } from "date-fns/eachDayOfInterval";
+import { format } from "date-fns/format";
 import { buildPatternMap, computeTrend } from "@/lib/grammar-patterns";
 import type {
   ReportData,

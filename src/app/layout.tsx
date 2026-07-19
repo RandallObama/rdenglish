@@ -33,6 +33,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="dns-prefetch" href="//api.deepseek.com" />
+        <link rel="preconnect" href="https://api.deepseek.com" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-full flex flex-col safe-area-inset-bottom">
         <Providers>
           <Navbar />

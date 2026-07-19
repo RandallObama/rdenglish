@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns/differenceInDays";
 
 export async function POST(request: Request) {
   const session = await auth();

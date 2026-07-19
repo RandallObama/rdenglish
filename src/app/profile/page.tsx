@@ -18,7 +18,9 @@ import {
 import { toast } from "sonner";
 import { getBtnStyle } from "@/lib/button-colors";
 import { maskPhone } from "@/lib/phone-utils";
-import { differenceInDays, addDays, format } from "date-fns";
+import { differenceInDays } from "date-fns/differenceInDays";
+import { addDays } from "date-fns/addDays";
+import { format } from "date-fns/format";
 import { zhCN } from "date-fns/locale";
 
 interface ProfileData {

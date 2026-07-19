@@ -19,7 +19,7 @@ export default async function HomePage() {
       {/* 品牌标题图（透明背景，暗色模式自动反色） */}
       <div className="mb-10 flex justify-center px-4 py-8">
         <Image
-          src="/title-logo-transparent.png"
+          src="/title-logo-transparent.webp"
           alt="Rdaily English"
           width={640}
           height={160}

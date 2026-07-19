@@ -24,7 +24,7 @@ export default async function DashboardPage() {
       {/* 品牌标题图（透明背景，暗色模式自动反色） */}
       <div className="mb-10 flex justify-center">
         <Image
-          src="/title-logo-transparent.png"
+          src="/title-logo-transparent.webp"
           alt="Rdaily English"
           width={640}
           height={160}

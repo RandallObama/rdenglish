@@ -1,5 +1,9 @@
 @AGENTS.md
 
+# Skills
+
+- **[project-setup-architecture](.claude/skills/project-setup-architecture.md)** — 项目初始化与架构指南。在新建页面、API 路由、数据库变更、AI 功能集成、或部署时参考。
+
 # 工作习惯（夏德蕊 2026-07-11 设定）
 
 ## 执行前：反问澄清

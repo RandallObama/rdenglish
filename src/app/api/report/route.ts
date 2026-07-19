@@ -2,14 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildReportAggregation } from "@/lib/report-aggregator";
-import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  subMonths,
-  parseISO,
-} from "date-fns";
+import { startOfWeek } from "date-fns/startOfWeek";
+import { endOfWeek } from "date-fns/endOfWeek";
+import { startOfMonth } from "date-fns/startOfMonth";
+import { endOfMonth } from "date-fns/endOfMonth";
+import { subMonths } from "date-fns/subMonths";
+import { parseISO } from "date-fns/parseISO";
 import type { ReportPeriodType } from "@/types";
 
 // ── GET: 学习报告数据聚合（只读，不消耗配额） ──
